@@ -18,6 +18,7 @@ __pycache__/
 .idea/
 *.swp
 *.swo
+*.tgz
 *~
 
 # OS generated files

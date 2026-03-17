@@ -8,6 +8,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
 function assertSpec(spec: unknown, filePath: string): asserts spec is ShellToolSpec {
   if (!isRecord(spec)) {
     throw new Error(`Invalid spec in ${filePath}: root must be an object`);
@@ -78,6 +82,45 @@ function assertSpec(spec: unknown, filePath: string): asserts spec is ShellToolS
             `Invalid spec in ${filePath}: execution.env.fromRuntime.${key} must be a non-empty string or array of non-empty strings`,
           );
         }
+      }
+    }
+  }
+
+  if ("compatibility" in spec.execution && spec.execution.compatibility !== undefined) {
+    const compatibility = spec.execution.compatibility;
+    if (!isRecord(compatibility)) {
+      throw new Error(`Invalid spec in ${filePath}: execution.compatibility must be an object`);
+    }
+
+    if (!Array.isArray(compatibility.targets) || compatibility.targets.length === 0) {
+      throw new Error(`Invalid spec in ${filePath}: execution.compatibility.targets must be a non-empty array`);
+    }
+
+    for (const [index, target] of compatibility.targets.entries()) {
+      if (!isRecord(target)) {
+        throw new Error(`Invalid spec in ${filePath}: execution.compatibility.targets[${index}] must be an object`);
+      }
+      if (!isNonEmptyString(target.os)) {
+        throw new Error(`Invalid spec in ${filePath}: execution.compatibility.targets[${index}].os must be a non-empty string`);
+      }
+      if (!isNonEmptyString(target.kernel)) {
+        throw new Error(`Invalid spec in ${filePath}: execution.compatibility.targets[${index}].kernel must be a non-empty string`);
+      }
+      if (!isNonEmptyString(target.arch)) {
+        throw new Error(`Invalid spec in ${filePath}: execution.compatibility.targets[${index}].arch must be a non-empty string`);
+      }
+      if (
+        "support" in target &&
+        target.support !== undefined &&
+        target.support !== "tested" &&
+        target.support !== "declared"
+      ) {
+        throw new Error(
+          `Invalid spec in ${filePath}: execution.compatibility.targets[${index}].support must be "tested" or "declared"`,
+        );
+      }
+      if ("notes" in target && target.notes !== undefined && typeof target.notes !== "string") {
+        throw new Error(`Invalid spec in ${filePath}: execution.compatibility.targets[${index}].notes must be a string`);
       }
     }
   }

@@ -46,6 +46,13 @@ execution:
     fromRuntime:
       TARGET_ENV: SOURCE_ENV        # 从服务运行时环境映射，支持优先级列表
       TOOL_OUTPUT_DIR: [YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested            # 可选：tested | declared
+        notes: Apple Silicon only validated target
   workingDirectory: /tmp/work
   timeoutMs: 30000
   maxOutputBytes: 1048576
@@ -64,11 +71,21 @@ execution:
 - `tool.name` 格式为 `<server>__<action>`，全小写 snake_case
 - `tool.description` 必须为 TSDoc `/** */` 块注释
 - `execution.env.fromParams` 环境变量名用 UPPER_SNAKE_CASE；与系统保留名（`PATH`、`HOME`、`USER` 等）冲突时加 `TOOL_` 前缀
+- `execution.compatibility` 是可选兼容性元数据（compatibility metadata）；若存在，`targets` 必须是非空数组，且每个 target 的 `os`、`kernel`、`arch` 都必须为非空字符串
+- `targets[].support` 可选且仅允许 `tested` 或 `declared`；`targets[].notes` 可选且必须为字符串
 - **`execution.command` 禁用**：args 中含 `&&`、`||`、`;`、`|`、`>`、`<` 等 shell 操作符时禁止使用；多步逻辑必须用 `execution.script`
 - 每个 YAML 只定义一个工具
 - `execution.env.fromRuntime` 支持字符串数组，按从左到右优先级短路匹配；适合表达组级默认值到全局默认值的 fallback
 
-### 1.1 healthz 契约（Health Check Contract）
+### 1.1 compatibility 元数据（Compatibility Metadata）
+
+`execution.compatibility.targets` 表达的是“已知运行目标（known runtime targets）”，不是“唯一允许执行的平台（hard platform gate）”。
+
+- 推荐把每个 target 当作一个完整元组（tuple）来声明，避免把 `os`、`kernel`、`arch` 拆成独立列表后产生错误的笛卡尔积（cartesian product）含义。
+- `support: tested` 表示该目标有实际验证证据；省略或 `declared` 表示声明可运行，但当前仓库未把它当作运行时拦截条件。
+- 当前 loader 与 lint 会校验字段结构，但服务启动与工具暴露逻辑不会因为该字段而做平台过滤（platform filtering）。
+
+### 1.2 healthz 契约（Health Check Contract）
 
 `__healthz` 工具的职责（responsibility）是做**依赖可用性探测（dependency availability probe）**，不是业务功能执行（business execution）。
 
@@ -77,7 +94,7 @@ execution:
 - 失败边界：healthz 失败只说明该 bundle 当前环境不满足运行条件，不应伪装为成功。
 - 设计要求：healthz 必须保持轻量（lightweight）与可重复执行（idempotent），避免副作用。
 
-### 1.2 0 参数工具与 Lint 规则（Zero-Parameter Tool Rule）
+### 1.3 0 参数工具与 Lint 规则（Zero-Parameter Tool Rule）
 
 对 0 参数工具（zero-parameter tools，例如 healthz），YAML 输入契约必须满足：
 

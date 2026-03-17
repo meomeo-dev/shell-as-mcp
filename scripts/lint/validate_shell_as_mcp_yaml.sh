@@ -68,6 +68,41 @@ if has_cmd and has_script:
 elif not has_cmd and not has_script:
     errors.append("execution must define exactly one of 'command' or 'script'")
 
+compatibility = execution.get("compatibility")
+if compatibility is not None:
+  if not isinstance(compatibility, dict):
+    errors.append("execution.compatibility must be a mapping")
+  else:
+    targets = compatibility.get("targets")
+    if not isinstance(targets, list) or len(targets) == 0:
+      errors.append("execution.compatibility.targets must be a non-empty array")
+    else:
+      for index, target in enumerate(targets):
+        if not isinstance(target, dict):
+          errors.append(
+            f"execution.compatibility.targets[{index}] must be a mapping"
+          )
+          continue
+
+        for key in ("os", "kernel", "arch"):
+          value = target.get(key)
+          if not isinstance(value, str) or not value:
+            errors.append(
+              f"execution.compatibility.targets[{index}].{key} must be a non-empty string"
+            )
+
+        support = target.get("support")
+        if support is not None and support not in {"tested", "declared"}:
+          errors.append(
+            f"execution.compatibility.targets[{index}].support must be 'tested' or 'declared'"
+          )
+
+        notes = target.get("notes")
+        if notes is not None and not isinstance(notes, str):
+          errors.append(
+            f"execution.compatibility.targets[{index}].notes must be a string"
+          )
+
 if errors:
     for e in errors:
         print(e)

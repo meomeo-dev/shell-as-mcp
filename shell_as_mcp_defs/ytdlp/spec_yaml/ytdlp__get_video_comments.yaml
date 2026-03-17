@@ -49,6 +49,28 @@ execution:
       TOOL_SORT_ORDER: sortOrder
       TOOL_COOKIES: cookies
       TOOL_PROXY: proxy
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
   timeoutMs: 300000
   taskMode: async
   maxOutputBytes: 4194304

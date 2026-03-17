@@ -40,6 +40,20 @@ export interface ScriptConfig {
   interpreter?: string;
 }
 
+export type CompatibilitySupportLevel = "tested" | "declared";
+
+export interface CompatibilityTarget {
+  os: string;
+  kernel: string;
+  arch: string;
+  support?: CompatibilitySupportLevel;
+  notes?: string;
+}
+
+export interface CompatibilityConfig {
+  targets: CompatibilityTarget[];
+}
+
 export interface ShellToolSpec {
   apiVersion: "v1";
   tool: {
@@ -51,6 +65,7 @@ export interface ShellToolSpec {
   execution: {
     shell?: ShellConfig;
     env?: EnvConfig;
+    compatibility?: CompatibilityConfig;
     workingDirectory?: string;
     timeoutMs?: number;
     maxOutputBytes?: number;

@@ -387,6 +387,137 @@ execution:
   await assert.rejects(loadSpecs(dir), /execution\.env\.fromRuntime\.BAD_MAP must be a non-empty string or array of non-empty strings/);
 });
 
+test("accepts yaml specs with compatibility targets", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "shell-as-mcp-spec-"));
+  await mkdir(path.join(dir, "testserver", "spec_yaml"), { recursive: true });
+  await writeFile(
+    path.join(dir, "testserver", "spec_yaml", "valid-compatibility.yaml"),
+    `apiVersion: v1
+tool:
+  name: valid_compatibility
+  description: |
+    /**
+     * Valid compatibility metadata.
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Apple Silicon developer machine
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  const specs = await loadSpecs(dir);
+  assert.equal(specs[0]?.execution.compatibility?.targets[0]?.kernel, "darwin");
+  assert.equal(specs[0]?.execution.compatibility?.targets[0]?.support, "tested");
+});
+
+test("rejects yaml specs with compatibility targets missing kernel", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "shell-as-mcp-spec-"));
+  await mkdir(path.join(dir, "testserver", "spec_yaml"), { recursive: true });
+  await writeFile(
+    path.join(dir, "testserver", "spec_yaml", "invalid-compatibility-kernel.yaml"),
+    `apiVersion: v1
+tool:
+  name: invalid_compatibility_kernel
+  description: |
+    /**
+     * Invalid compatibility metadata.
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  compatibility:
+    targets:
+      - os: macos
+        arch: arm64
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  await assert.rejects(loadSpecs(dir), /execution\.compatibility\.targets\[0\]\.kernel must be a non-empty string/);
+});
+
+test("rejects yaml specs with compatibility targets missing arch", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "shell-as-mcp-spec-"));
+  await mkdir(path.join(dir, "testserver", "spec_yaml"), { recursive: true });
+  await writeFile(
+    path.join(dir, "testserver", "spec_yaml", "invalid-compatibility-arch.yaml"),
+    `apiVersion: v1
+tool:
+  name: invalid_compatibility_arch
+  description: |
+    /**
+     * Invalid compatibility metadata.
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  await assert.rejects(loadSpecs(dir), /execution\.compatibility\.targets\[0\]\.arch must be a non-empty string/);
+});
+
+test("rejects yaml specs with invalid compatibility support", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "shell-as-mcp-spec-"));
+  await mkdir(path.join(dir, "testserver", "spec_yaml"), { recursive: true });
+  await writeFile(
+    path.join(dir, "testserver", "spec_yaml", "invalid-compatibility-support.yaml"),
+    `apiVersion: v1
+tool:
+  name: invalid_compatibility_support
+  description: |
+    /**
+     * Invalid compatibility metadata.
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  compatibility:
+    targets:
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: experimental
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  await assert.rejects(loadSpecs(dir), /execution\.compatibility\.targets\[0\]\.support must be "tested" or "declared"/);
+});
+
 test("normalizes TSDoc description for MCP registration", () => {
   const description = normalizeTSDocDescription(`/**
  * Summary line.

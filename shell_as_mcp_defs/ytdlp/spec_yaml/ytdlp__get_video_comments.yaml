@@ -1,0 +1,57 @@
+apiVersion: v1
+tool:
+  name: ytdlp__get_video_comments
+  description: |-
+    /**
+     * Fetch video comments from a URL using yt-dlp and return structured JSON.
+     * @remarks Uses yt-dlp --write-comments -j to extract comments metadata, then filters/sorts
+     *          via Python to return at most maxComments entries.
+     * @param url The video URL (must start with http:// or https://).
+     * @param maxComments Maximum number of comments to return (1-5000). Defaults to 100.
+     * @param sortOrder Comment sort order: "top" (default) or "new".
+     * @param cookies Optional path to a Netscape-format cookies file.
+     * @param proxy Optional proxy address.
+     */
+  input:
+    properties:
+      url:
+        type: string
+        description: "The video URL (must start with http:// or https://)."
+      maxComments:
+        type: number
+        description: "Maximum number of comments to return (1-5000). Defaults to 100."
+      sortOrder:
+        type: string
+        description: "Comment sort order: \"top\" (default) or \"new\"."
+      cookies:
+        type: string
+        description: "Optional path to a Netscape-format cookies file."
+      proxy:
+        type: string
+        description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+    required: [url]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_URL: url
+      TOOL_MAX_COMMENTS: maxComments
+      TOOL_SORT_ORDER: sortOrder
+      TOOL_COOKIES: cookies
+      TOOL_PROXY: proxy
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 4194304
+  script:
+    path: ./scripts/ytdlp__get_video_comments.sh
+    interpreter: bash

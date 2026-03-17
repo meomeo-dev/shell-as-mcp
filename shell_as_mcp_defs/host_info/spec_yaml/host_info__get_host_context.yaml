@@ -1,0 +1,45 @@
+apiVersion: v1
+tool:
+  name: host_info__get_host_context
+  description: |-
+    /**
+     * Collect host system context for code development tasks in a single call.
+     * @remarks Returns two sections: 'system' (OS, locale, timezone, hardware, current time) and 'dev_environments' (availability, path, and version for ~35 programming tools). Ideal as a first call before writing or running code on the host.
+     * @param include_hardware Whether to include CPU count and total memory size in system section. Default true.
+     * @param filter_tools Optional comma-separated list of tool names to probe (e.g. 'python3,node,rustc'). Empty = check all ~35 tools.
+     * @param output_format JSON indentation style: 'pretty' (default, 2-space indent) or 'compact'.
+     */
+  input:
+    properties:
+      include_hardware:
+        type: boolean
+        description: "Whether to include CPU count and total memory size. Default true."
+      filter_tools:
+        type: string
+        description: "Comma-separated tool names to probe (e.g. 'python3,node,rustc'). Empty = check all."
+      output_format:
+        type: string
+        description: "JSON indentation style: 'pretty' (default) or 'compact'."
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_INCLUDE_HARDWARE: include_hardware
+      TOOL_FILTER_TOOLS: filter_tools
+      TOOL_OUTPUT_FORMAT: output_format
+  timeoutMs: 60000
+  maxOutputBytes: 196608
+  script:
+    path: ./scripts/host_info__get_host_context.sh
+    interpreter: bash

@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: shell-as-mcp-lint
+        name: shell-as-mcp static spec validators
+        language: script
+        entry: scripts/lint/lint_all.sh
+        pass_filenames: false
+        always_run: true

@@ -1,0 +1,42 @@
+apiVersion: v1
+tool:
+  name: ass__lint
+  description: |-
+    /**
+     * Lint and validate an ASS (Advanced SubStation Alpha) subtitle file.
+     * @remarks Checks 16 structural rules including section headers, ScriptType,
+     * PlayRes fields, Format/Style/Dialogue line presence, time format validity,
+     * and color field format. Returns a JSON report with per-check results.
+     * In strict mode, also validates field counts per Dialogue (>=10) and Style (=23).
+     * @param ass_file_path Absolute or relative path to the .ass file to lint.
+     * @param strict When true, enables additional field-count checks (checks 15 & 16).
+     */
+  input:
+    properties:
+      ass_file_path:
+        type: string
+        description: "Path to the ASS subtitle file to lint."
+      strict:
+        type: boolean
+        description: "Enable strict mode: also validate Dialogue (>=10 fields) and Style (=23 fields). Default false."
+    required: [ass_file_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_ASS_FILE_PATH: ass_file_path
+      TOOL_STRICT: strict
+  timeoutMs: 15000
+  script:
+    path: ./scripts/ass__lint.sh
+    interpreter: bash

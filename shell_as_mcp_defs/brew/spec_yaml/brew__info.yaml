@@ -1,0 +1,40 @@
+apiVersion: v1
+tool:
+  name: brew__info
+  description: |-
+    /**
+     * Get detailed information about a Homebrew formula or cask.
+     * @remarks Returns JSON from 'brew info --json=v2' with version, dependencies, homepage, and description. Read-only operation.
+     * @param package_name Name of the Homebrew formula or cask.
+     * @param cask Whether the package is a cask (GUI app). Default false (formula).
+     */
+  input:
+    properties:
+      package_name:
+        type: string
+        description: "Name of the Homebrew formula or cask to look up."
+      cask:
+        type: boolean
+        description: "Set to true if looking up a cask (GUI app). Default false."
+    required: [package_name]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_PACKAGE_NAME: package_name
+      TOOL_CASK: cask
+  timeoutMs: 30000
+  maxOutputBytes: 262144
+  script:
+    path: ./scripts/brew__info.sh
+    interpreter: bash

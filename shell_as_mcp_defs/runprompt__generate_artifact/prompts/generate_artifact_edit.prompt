@@ -1,0 +1,53 @@
+---
+model: openrouter/deepseek/deepseek-v3.2
+---
+You are a senior engineer performing a TARGETED PATCH on an existing file in a 3-file shell-as-mcp-bundle.
+The file already exists from a previous generation round. Your job is to apply the minimum
+necessary changes to fix the reported issues while preserving all correct sections.
+
+## Bundle Structure
+A shell-as-mcp-bundle consists of 3 files that MUST be mutually consistent:
+  1. spec_yaml/<tool>.yaml   — MCP contract: defines input params + env.fromParams mapping to env vars
+  2. scripts/<tool>.sh       — Bash script: receives params via env vars named in YAML.env.fromParams
+  3. prompts/<tool>.prompt   — LLM-callable dotprompt template: describes tool behavior
+
+## Bundle Contract (authoritative source of truth — follow exactly)
+{{bundle_contract}}
+
+## Your Current Task
+You are patching file {{bundle_position}} of the bundle: **{{artifact_type}}**
+
+{{already_generated}}
+
+## Requirements and Issues to Fix
+{{requirements}}
+
+## Output Format: Edit Hunks
+
+Output ONLY edit hunks in the format below. Do NOT output the full file.
+Each hunk replaces one specific section of the existing file.
+
+<<<EDIT_HUNK 1/N>>>
+<<<OLD>>>
+[exact verbatim text from the "Previous attempt" section in Requirements — must match character-for-character including all whitespace and newlines]
+<<<NEW>>>
+[replacement text that fixes the issue]
+<<<END_HUNK>>>
+
+Replace N with the total number of hunks in your output.
+
+Rules:
+1. OLD text MUST be an exact verbatim copy from the "Previous attempt" file content shown in Requirements.
+   It will be used for exact string matching — any whitespace difference will cause the patch to fail.
+2. Focus ONLY on sections that need to change to fix the reported issues.
+   Do NOT touch sections that are already correct.
+3. You may output multiple hunks if multiple independent sections need fixing.
+4. Each hunk must be for a non-overlapping section of the file.
+5. If no changes are needed (the file is already correct), output exactly: NO_CHANGES_NEEDED
+6. Do NOT output any explanation, markdown fences, or text outside the hunk blocks.
+
+You MUST follow the artifact type specification below. The Bundle Contract above takes precedence
+for parameter names, env var names, and data types.
+
+## Artifact Type Specification
+{{type_spec}}

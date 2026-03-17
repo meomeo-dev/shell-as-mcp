@@ -1,0 +1,53 @@
+apiVersion: v1
+tool:
+  name: ytdlp__download_audio
+  description: |-
+    /**
+      * Download audio from a video URL using yt-dlp, saving as m4a to output_dir or a configured default directory.
+     * @remarks Extracts best-quality audio track. Supports optional cookies file and proxy.
+     * @param url The video URL to download audio from (must start with http:// or https://).
+      * @param output_dir Optional output directory. Falls back to YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR, or ~/Downloads.
+      * @param cookies Optional path to a Netscape-format cookies file for authenticated downloads.
+     * @param proxy Optional proxy address (e.g. socks5://127.0.0.1:1080).
+     */
+  input:
+    properties:
+      url:
+        type: string
+        description: "The video URL to download audio from (must start with http:// or https://)."
+      output_dir:
+        type: string
+        description: "Optional output directory. Falls back to YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR, or ~/Downloads."
+      cookies:
+        type: string
+        description: "Optional path to a Netscape-format cookies file for authenticated downloads."
+      proxy:
+        type: string
+        description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+    required: [url]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromRuntime:
+      TOOL_OUTPUT_DIR: [YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
+    fromParams:
+      TOOL_URL: url
+      TOOL_OUTPUT_DIR: output_dir
+      TOOL_COOKIES: cookies
+      TOOL_PROXY: proxy
+  timeoutMs: 900000
+  taskMode: async
+  maxOutputBytes: 524288
+  script:
+    path: ./scripts/ytdlp__download_audio.sh
+    interpreter: bash

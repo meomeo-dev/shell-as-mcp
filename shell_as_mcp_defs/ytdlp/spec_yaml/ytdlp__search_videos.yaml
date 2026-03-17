@@ -1,0 +1,65 @@
+apiVersion: v1
+tool:
+  name: ytdlp__search_videos
+  description: |-
+    /**
+     * Search YouTube videos by keyword using yt-dlp and return results as summary or JSON.
+     * @remarks Uses ytsearch to query YouTube; supports pagination via offset and date filtering.
+     * @param query Search keywords (must not contain newlines).
+     * @param maxResults Number of results to return (1-50, default 10).
+     * @param offset Pagination offset (default 0).
+     * @param response_format Output format: "summary" (default) or "json".
+     * @param uploadDateFilter Filter by upload date: "today", "week", "month", or "year".
+     * @param cookies Optional path to a Netscape-format cookies file.
+     * @param proxy Optional proxy address (e.g. socks5://127.0.0.1:1080).
+     */
+  input:
+    properties:
+      query:
+        type: string
+        description: "Search keywords (must not contain newlines)."
+      maxResults:
+        type: number
+        description: "Number of results to return (1-50, default 10)."
+      offset:
+        type: number
+        description: "Pagination offset (default 0)."
+      response_format:
+        type: string
+        description: "Output format: \"summary\" (default) or \"json\"."
+      uploadDateFilter:
+        type: string
+        description: "Filter by upload date: \"today\", \"week\", \"month\", or \"year\"."
+      cookies:
+        type: string
+        description: "Optional path to a Netscape-format cookies file."
+      proxy:
+        type: string
+        description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+    required: [query]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_QUERY: query
+      TOOL_MAX_RESULTS: maxResults
+      TOOL_OFFSET: offset
+      TOOL_RESPONSE_FORMAT: response_format
+      TOOL_UPLOAD_DATE_FILTER: uploadDateFilter
+      TOOL_COOKIES: cookies
+      TOOL_PROXY: proxy
+  timeoutMs: 90000
+  maxOutputBytes: 2097152
+  script:
+    path: ./scripts/ytdlp__search_videos.sh
+    interpreter: bash

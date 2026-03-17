@@ -1,0 +1,135 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__process_video_for_llm
+  description: |-
+    /**
+     * Build an LLM-ready video in one ffmpeg run (trim, scale, fps, speed, optional audio strip and watermark).
+     * @remarks Returns a compact JSON summary in stdout with output_path and applied options for LLM-friendly parsing.
+     * @param input_path Source video path.
+     * @param output_path Destination video path.
+     * @param start_time Optional start timestamp (for example 00:04:30).
+     * @param end_time Optional end timestamp (for example 00:05:30).
+     * @param max_resolution Optional longest-edge cap (for example 720).
+     * @param fps Optional output fps (for example 1.0).
+     * @param speed_factor Playback speed factor (for example 2.0).
+     * @param strip_audio Whether to remove audio track.
+     * @param watermark_path Optional watermark/subtitle image path.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video path.
+      output_path:
+        type: string
+        description: Destination video path.
+      start_time:
+        type: string
+        description: Optional start timestamp (HH:MM:SS or ffmpeg-compatible format).
+      end_time:
+        type: string
+        description: Optional end timestamp (HH:MM:SS or ffmpeg-compatible format).
+      max_resolution:
+        type: integer
+        description: Optional longest-edge cap for output frames.
+      fps:
+        type: number
+        description: Optional output fps.
+      speed_factor:
+        type: number
+        description: Playback speed factor, default 1.0.
+      strip_audio:
+        type: boolean
+        description: Whether to remove audio track, default false.
+      watermark_path:
+        type: string
+        description: Optional watermark/subtitle image path.
+    required: [input_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      OUTPUT_PATH: output_path
+      START_TIME: start_time
+      END_TIME: end_time
+      MAX_RESOLUTION: max_resolution
+      FPS: fps
+      SPEED_FACTOR: speed_factor
+      STRIP_AUDIO: strip_audio
+      WATERMARK_PATH: watermark_path
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 1048576
+  command:
+    executable: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+
+        speed_factor="${SPEED_FACTOR:-1}"
+        strip_audio="${STRIP_AUDIO:-false}"
+        node -e 'const s=Number(process.env.SPEED_FACTOR || 1); if (!Number.isFinite(s) || s <= 0) { console.error("speed_factor must be > 0"); process.exit(1); }'
+
+        cmd=(ffmpeg -hide_banner -loglevel error -y)
+
+        if [ -n "${START_TIME:-}" ]; then
+          cmd+=( -ss "$START_TIME" )
+        fi
+        if [ -n "${END_TIME:-}" ]; then
+          cmd+=( -to "$END_TIME" )
+        fi
+
+        cmd+=( -i "$INPUT_PATH" )
+
+        filter_parts=()
+
+        if [ -n "${MAX_RESOLUTION:-}" ]; then
+          filter_parts+=( "scale='if(gt(iw,ih),min(${MAX_RESOLUTION},iw),-2)':'if(gt(iw,ih),-2,min(${MAX_RESOLUTION},ih))'" )
+        fi
+
+        if [ -n "${FPS:-}" ]; then
+          filter_parts+=( "fps=${FPS}" )
+        fi
+
+        if [ "$speed_factor" != "1" ]; then
+          filter_parts+=( "setpts=PTS/${speed_factor}" )
+        fi
+
+        if [ -n "${WATERMARK_PATH:-}" ]; then
+          cmd+=( -i "$WATERMARK_PATH" )
+          filter_parts+=( "overlay=W-w-16:H-h-16" )
+        fi
+
+        if [ ${#filter_parts[@]} -gt 0 ]; then
+          IFS=,
+          filter_graph="${filter_parts[*]}"
+          unset IFS
+          cmd+=( -filter_complex "$filter_graph" )
+        fi
+
+        if [ "$strip_audio" = "true" ]; then
+          cmd+=( -an )
+        elif [ "$speed_factor" != "1" ]; then
+          atempo_chain="$(node -e 'const speed=Number(process.env.SPEED_FACTOR || 1); let remaining=speed; const parts=[]; while (remaining > 2) { parts.push("atempo=2.0"); remaining /= 2; } while (remaining < 0.5) { parts.push("atempo=0.5"); remaining /= 0.5; } parts.push(`atempo=${remaining.toFixed(6).replace(/0+$/, "").replace(/\\.$/, "")}`); console.log(parts.join(","));')"
+          cmd+=( -af "$atempo_chain" )
+        fi
+
+        cmd+=( "$OUTPUT_PATH" )
+        "${cmd[@]}"
+
+        node -e 'console.log(JSON.stringify({output_path: process.env.OUTPUT_PATH, start_time: process.env.START_TIME || null, end_time: process.env.END_TIME || null, max_resolution: process.env.MAX_RESOLUTION || null, fps: process.env.FPS || null, speed_factor: Number(process.env.SPEED_FACTOR || 1), strip_audio: (process.env.STRIP_AUDIO || "false") === "true", watermark_path: process.env.WATERMARK_PATH || null}))'

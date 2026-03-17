@@ -1,0 +1,36 @@
+apiVersion: v1
+tool:
+  name: shell__run_script_echo
+  description: |-
+    /**
+     * Run a local script and echo the input value with prefix.
+     * @param value Input value passed to the script.
+     */
+  input:
+    properties:
+      value:
+        type: string
+        description: Input value.
+    required: [value]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    static:
+      SCRIPT_PREFIX: yaml-script
+  timeoutMs: 10000
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/echo_script.sh
+    interpreter: bash
+    args:
+      - "{{value}}"

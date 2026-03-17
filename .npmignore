@@ -1,0 +1,49 @@
+# ── Runtime dependencies (keep) ─────────────────────────────────────────────
+# dist/  ← compiled JS + bundled specs
+# shell_as_mcp_defs/  ← root copy (fallback for resolveBundledSpecDir)
+# package.json, README.md, LICENSE, icon.svg, .env.example
+
+# ── Development files (exclude) ──────────────────────────────────────────────
+node_modules/
+.env
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Dev tooling & workspace internals
+.kms/
+.todo_tasks/
+.github/
+.git/
+.pre-commit-config.yaml
+Dockerfile
+.dockerignore
+Makefile
+tsconfig.json
+
+# Source & tests (dist/ is sufficient)
+src/
+test/
+dist/test/
+
+# Dev scripts & task notes (root-level only, NOT shell_as_mcp_defs/*/scripts/)
+/scripts/
+tasks/
+tmp/
+
+# Python bytecode cache (useless across machines)
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Root shell_as_mcp_defs/ is redundant: dist/shell_as_mcp_defs/ (candidate 1) is always present
+/shell_as_mcp_defs/

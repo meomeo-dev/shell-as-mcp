@@ -1,0 +1,52 @@
+apiVersion: v1
+tool:
+  name: ytdlp__download_transcript
+  description: |-
+    /**
+     * Download and extract plain-text transcript from a video URL using yt-dlp.
+     * @remarks Downloads VTT subtitles (manual or auto-generated) to a temp dir, converts to
+     *          plain text (strips timestamps, NOTE blocks, duplicate adjacent lines), then cleans up.
+     * @param url The video URL (must start with http:// or https://).
+     * @param language Subtitle language code. Defaults to "en".
+     * @param cookies Optional path to a Netscape-format cookies file.
+     * @param proxy Optional proxy address.
+     */
+  input:
+    properties:
+      url:
+        type: string
+        description: "The video URL (must start with http:// or https://)."
+      language:
+        type: string
+        description: "Subtitle language code (e.g. en, zh-Hans). Defaults to \"en\"."
+      cookies:
+        type: string
+        description: "Optional path to a Netscape-format cookies file."
+      proxy:
+        type: string
+        description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+    required: [url]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_URL: url
+      TOOL_LANGUAGE: language
+      TOOL_COOKIES: cookies
+      TOOL_PROXY: proxy
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ytdlp__download_transcript.sh
+    interpreter: bash

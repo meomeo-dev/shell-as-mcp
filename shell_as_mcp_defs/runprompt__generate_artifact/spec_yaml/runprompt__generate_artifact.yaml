@@ -1,0 +1,110 @@
+apiVersion: v1
+tool:
+  name: runprompt__generate_artifact
+  description: |-
+    /**
+    * Generate a shell-as-mcp bundle with runprompt under SHELL_AS_MCP_SPEC_DIR.
+    * @param artifact_type Artifact type: shell-as-mcp-bundle.
+    * @param requirements Natural language requirements used to generate file content.
+    * @param server_name Optional server folder for shell-as-mcp-bundle mode.
+    * @param tool_name Optional tool base name for shell-as-mcp-bundle mode.
+    * @param max_repair_rounds Optional max repair rounds when quality gates fail.
+    * @param run_tests Optional toggle for running tests in quality gates.
+    * @param run_code_review Optional toggle for running code review gate (default true).
+    * @param run_security_review Optional toggle for running security review gate (default true).
+    */
+  input:
+    properties:
+      artifact_type:
+        type: string
+        description: "Artifact type: shell-as-mcp-bundle."
+      requirements:
+        type: string
+        description: Natural language requirements for the generated file.
+      server_name:
+        type: string
+        description: Optional server folder name used in shell-as-mcp-bundle mode.
+      tool_name:
+        type: string
+        description: Optional tool base name used in shell-as-mcp-bundle mode.
+      max_repair_rounds:
+        type: integer
+        description: Optional max repair rounds when quality gates fail.
+      run_tests:
+        type: boolean
+        description: Optional flag to run tests during quality gates (default true).
+      run_code_review:
+        type: boolean
+        description: Optional flag to run code review during quality gates (default true).
+      run_security_review:
+        type: boolean
+        description: Optional flag to run security review during quality gates (default true).
+    required: [artifact_type, requirements]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+      generated_files: { type: string }
+      quality_gates: { type: string }
+      audit_report_path: { type: string }
+execution:
+  shell:
+    mode: direct
+  env:
+    static: {}
+    fromRuntime:
+      RUNPROMPT_MODEL:
+        - RUNPROMPT_MODEL
+        - MODEL
+      RUNPROMPT_BASE_URL:
+        - RUNPROMPT_BASE_URL
+        - OPENAI_BASE_URL
+        - OPENAI_API_BASE
+        - BASE_URL
+      RUNPROMPT_OPENROUTER_API_KEY:
+        - RUNPROMPT_OPENROUTER_API_KEY
+        - OPENROUTER_API_KEY
+        - API_KEY
+      SHELL_AS_MCP_SANDBOX_ENABLE:
+        - SHELL_AS_MCP_SANDBOX_ENABLE
+      SHELL_AS_MCP_SANDBOX_FALLBACK_LOCAL:
+        - SHELL_AS_MCP_SANDBOX_FALLBACK_LOCAL
+      SHELL_AS_MCP_SANDBOX_ALLOWED_DOMAINS:
+        - SHELL_AS_MCP_SANDBOX_ALLOWED_DOMAINS
+      SHELL_AS_MCP_SANDBOX_ALLOW_WRITE:
+        - SHELL_AS_MCP_SANDBOX_ALLOW_WRITE
+      SHELL_AS_MCP_SANDBOX_DENY_READ:
+        - SHELL_AS_MCP_SANDBOX_DENY_READ
+      SHELL_AS_MCP_SANDBOX_DENY_WRITE:
+        - SHELL_AS_MCP_SANDBOX_DENY_WRITE
+      SHELL_AS_MCP_FILESYSTEM_MCP_ENABLE:
+        - SHELL_AS_MCP_FILESYSTEM_MCP_ENABLE
+      SHELL_AS_MCP_FILESYSTEM_FALLBACK_LOCAL:
+        - SHELL_AS_MCP_FILESYSTEM_FALLBACK_LOCAL
+      SHELL_AS_MCP_FILESYSTEM_ROOT:
+        - SHELL_AS_MCP_FILESYSTEM_ROOT
+      SHELL_AS_MCP_FILESYSTEM_SERVER_COMMAND:
+        - SHELL_AS_MCP_FILESYSTEM_SERVER_COMMAND
+      SHELL_AS_MCP_FILESYSTEM_SERVER_ARGS:
+        - SHELL_AS_MCP_FILESYSTEM_SERVER_ARGS
+      SHELL_AS_MCP_FILESYSTEM_SERVER_ARGS_JSON:
+        - SHELL_AS_MCP_FILESYSTEM_SERVER_ARGS_JSON
+  timeoutMs: 120000
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/runprompt_generate_artifact.sh
+    interpreter: bash
+    args:
+      - "{{artifact_type}}"
+      - "{{requirements}}"
+      - "{{server_name}}"
+      - "{{tool_name}}"
+      - "{{max_repair_rounds}}"
+      - "{{run_tests}}"
+      - "{{run_code_review}}"
+      - "{{run_security_review}}"

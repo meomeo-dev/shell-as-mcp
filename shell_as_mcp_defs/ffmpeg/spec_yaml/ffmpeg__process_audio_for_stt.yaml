@@ -1,0 +1,102 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__process_audio_for_stt
+  description: |-
+    /**
+     * Build a Whisper/STT-ready compact audio output from either audio or video input.
+     * @remarks Returns a JSON summary in stdout with output_path and normalization parameters for LLM-friendly parsing.
+     * @param input_path Source media path (video or audio).
+     * @param output_path Destination audio path.
+     * @param start_time Optional start timestamp (for example 00:04:30).
+     * @param end_time Optional end timestamp (for example 00:05:30).
+     * @param sample_rate Output sample rate in Hz, default 16000.
+     * @param channels Output channels count, default 1.
+     * @param remove_silence Whether to remove long silent regions, default true.
+     * @param audio_format Output container format, default mp3.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source media path.
+      output_path:
+        type: string
+        description: Destination audio path.
+      start_time:
+        type: string
+        description: Optional start timestamp.
+      end_time:
+        type: string
+        description: Optional end timestamp.
+      sample_rate:
+        type: integer
+        description: Output sample rate in Hz, default 16000.
+      channels:
+        type: integer
+        description: Output channels count, default 1.
+      remove_silence:
+        type: boolean
+        description: Whether to remove silent regions, default true.
+      audio_format:
+        type: string
+        description: Output container format, default mp3.
+    required: [input_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      OUTPUT_PATH: output_path
+      START_TIME: start_time
+      END_TIME: end_time
+      SAMPLE_RATE: sample_rate
+      CHANNELS: channels
+      REMOVE_SILENCE: remove_silence
+      AUDIO_FORMAT: audio_format
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 1048576
+  command:
+    executable: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+
+        sample_rate="${SAMPLE_RATE:-16000}"
+        channels="${CHANNELS:-1}"
+        remove_silence="${REMOVE_SILENCE:-true}"
+        audio_format="${AUDIO_FORMAT:-mp3}"
+
+        cmd=(ffmpeg -hide_banner -loglevel error -y)
+
+        if [ -n "${START_TIME:-}" ]; then
+          cmd+=( -ss "$START_TIME" )
+        fi
+        if [ -n "${END_TIME:-}" ]; then
+          cmd+=( -to "$END_TIME" )
+        fi
+
+        cmd+=( -i "$INPUT_PATH" -vn -ar "$sample_rate" -ac "$channels" )
+
+        if [ "$remove_silence" = "true" ]; then
+          cmd+=( -af "silenceremove=start_periods=1:start_duration=0.3:start_threshold=-45dB:stop_periods=-1:stop_duration=0.5:stop_threshold=-45dB" )
+        fi
+
+        cmd+=( -f "$audio_format" "$OUTPUT_PATH" )
+        "${cmd[@]}"
+
+        node -e 'console.log(JSON.stringify({output_path: process.env.OUTPUT_PATH, start_time: process.env.START_TIME || null, end_time: process.env.END_TIME || null, sample_rate: Number(process.env.SAMPLE_RATE || 16000), channels: Number(process.env.CHANNELS || 1), remove_silence: (process.env.REMOVE_SILENCE || "true") === "true", audio_format: process.env.AUDIO_FORMAT || "mp3"}))'

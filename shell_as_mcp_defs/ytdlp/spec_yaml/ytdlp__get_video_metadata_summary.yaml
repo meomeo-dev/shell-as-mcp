@@ -1,0 +1,45 @@
+apiVersion: v1
+tool:
+  name: ytdlp__get_video_metadata_summary
+  description: |-
+    /**
+     * Fetch and display a human-readable metadata summary for a video URL using yt-dlp.
+     * @remarks Returns title, channel, duration, upload date, views, likes, tags, and description snippet.
+     * @param url The video URL (must start with http:// or https://).
+     * @param cookies Optional path to a Netscape-format cookies file.
+     * @param proxy Optional proxy address (e.g. socks5://127.0.0.1:1080).
+     */
+  input:
+    properties:
+      url:
+        type: string
+        description: "The video URL (must start with http:// or https://)."
+      cookies:
+        type: string
+        description: "Optional path to a Netscape-format cookies file."
+      proxy:
+        type: string
+        description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+    required: [url]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_URL: url
+      TOOL_COOKIES: cookies
+      TOOL_PROXY: proxy
+  timeoutMs: 60000
+  maxOutputBytes: 262144
+  script:
+    path: ./scripts/ytdlp__get_video_metadata_summary.sh
+    interpreter: bash

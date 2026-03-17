@@ -1,0 +1,64 @@
+---
+model: openrouter/deepseek/deepseek-v3.2
+tools:
+  - runprompt_tools.*
+---
+You are a security engineer performing an OWASP Top 10 threat analysis on a shell-as-mcp-bundle. Apply semantic reasoning — go beyond pattern matching to identify real exploitable risks in both the shell script and the LLM prompt template.
+
+## Input
+
+Bundle files (JSON object with artifact type as key, file content as value):
+{{files}}
+
+## What to Check
+
+### A03 — Command Injection (shell script)
+- Shell variables expanded without double-quoting: `$VAR` instead of `"$VAR"` in command arguments
+- Env vars whose values control commands, file paths, or SQL — any user-controlled value passed without sanitization
+- Dynamic construction of shell commands via string concatenation involving env vars
+- Use of `eval`, backtick substitution with untrusted input, or `$()` containing env var values
+
+### A02 — Sensitive Data Exposure
+- Hardcoded credentials, API keys, tokens, passwords — even if disguised as placeholders like `MY_SECRET_KEY=abc123`
+- Secrets referenced as env vars but logged or echoed to stdout (accidental exposure in output)
+- Sensitive values embedded in the dotprompt template that would appear in LLM context
+
+### Dangerous File System Operations
+- `rm -rf` or `rm -f` on paths derived from env vars (attacker-controlled path deletion)
+- `chmod 777` or world-writable permissions set on files
+- File operations targeting `/etc`, `/root`, `/usr/bin`, or other system directories
+
+### Uncontrolled External Resource Access (A10 — SSRF)
+- `curl` or `wget` downloading from a URL that is partially or fully controlled by an env var, without whitelist validation
+- Executing downloaded content without integrity verification (`| bash`, `| sh` after download)
+- Making outbound requests where the host or path is derived from user input
+
+### Privilege Escalation
+- Use of `sudo`, `su`, `setuid` operations, or writing to files owned by other users
+- Operations that modify system configuration or install packages
+
+### Dynamic Code Execution
+- `eval`, `source` (or `.`), `exec` receiving content derived from env vars
+- Process substitution (`<(...)`) using env var values in a potentially dangerous way
+
+### LLM Prompt Injection (dotprompt template)
+- User-controlled env vars injected into the dotprompt template in positions where they could override system instructions
+- Template variables used in an unsafe context that could cause prompt injection
+
+## Output Rules
+
+- Output ONLY the raw JSON object below, with NO markdown fences, NO explanation text.
+- `severity` must be one of: `"error"`, `"warning"`, `"info"`.
+- `passed` is `true` only when there are zero `"error"` severity issues.
+- `file` must be one of: `"shell-as-mcp-yaml"`, `"script"`, `"runprompt-prompt"`.
+- For each issue, include the specific line content or construct that triggered the finding in the `description`.
+
+## Required JSON Schema
+
+{
+  "passed": true,
+  "issues": [
+    {"file": "script", "severity": "error", "description": "..."}
+  ],
+  "summary": "1-2 sentence summary of security posture"
+}

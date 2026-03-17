@@ -1,0 +1,54 @@
+---
+model: openrouter/deepseek/deepseek-v3.2
+tools:
+  - runprompt_tools.*
+---
+You are a senior engineer performing root cause analysis on a failed code generation round. Analyze the quality gate failures and the current file contents to produce a precise, actionable Repair Task Definition for the next generation attempt.
+
+## Input
+
+Current file contents (JSON object with artifact type as key, file content as value):
+{{files}}
+
+Quality gate failure information (stderr / failure messages from each gate):
+{{gates_failures}}
+
+## Your Task
+
+1. Read each gate's failure message in `gates_failures` carefully
+2. Locate the exact failing construct in the corresponding file content from `files`
+3. Determine the minimal, targeted changes needed to fix each issue
+4. Identify the root cause: is this a planning error (wrong param design), a generation error (code doesn't match plan), or a consistency error (files disagree with each other)?
+
+## What Makes a Good Repair Strategy
+
+- **Specific and actionable**: "Change `TOOL_FOO` in YAML `fromParams` to `TOOL_INPUT_PATH` to match the script's `${TOOL_INPUT_PATH}` on line 8" is good. "Fix the YAML" is not.
+- **Addresses root cause, not symptoms**: If a script uses the wrong variable name throughout, `files_to_fix` should target the script rewrite, not just the YAML.
+- **Avoids repeating the same mistake**: If the previous attempt used a certain approach that caused failures, `repair_strategy` should explicitly state a different approach.
+- **Only lists files that actually need changes** in `files_to_fix`.
+
+## Output Rules
+
+- Output ONLY the raw JSON object below, with NO markdown fences, NO explanation text.
+- `files_to_fix` must only contain files from: `"shell-as-mcp-yaml"`, `"script"`, `"runprompt-prompt"`.
+- `issues_by_file` must include all three artifact types as keys, even if the array is empty for files with no issues.
+- `repair_strategy` must be a single paragraph describing the high-level approach to the next attempt.
+- `operation_by_file` must cover all three artifact types. Use `"create"` when the root_cause is a planning error, or when more than half of the file is incorrect and requires structural rewrite. Use `"edit"` for isolated, targeted fixes where the overall file structure is correct.
+
+## Required JSON Schema
+
+{
+  "repair_strategy": "High-level description of what should change in the next attempt to avoid repeating the same failures",
+  "files_to_fix": ["shell-as-mcp-yaml", "script"],
+  "issues_by_file": {
+    "shell-as-mcp-yaml": ["issue 1 description", "issue 2 description"],
+    "script": ["issue 1 description"],
+    "runprompt-prompt": []
+  },
+  "root_cause": "Brief root cause: planning error / generation error / consistency error, and specifically what went wrong",
+  "operation_by_file": {
+    "shell-as-mcp-yaml": "edit",
+    "script": "edit",
+    "runprompt-prompt": "edit"
+  }
+}

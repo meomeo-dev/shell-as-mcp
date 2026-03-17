@@ -1,0 +1,40 @@
+apiVersion: v1
+tool:
+  name: brew__search
+  description: |-
+    /**
+     * Search Homebrew for available formulae and casks by name or keyword.
+     * @remarks Returns matching formula and cask names as structured JSON. Read-only operation, no authorization required.
+     * @param query Search term or package name to look up in Homebrew.
+     * @param include_casks Whether to also search casks in addition to formulae. Default true.
+     */
+  input:
+    properties:
+      query:
+        type: string
+        description: "Search term or package name to look up in Homebrew."
+      include_casks:
+        type: boolean
+        description: "Whether to include cask results. Default true."
+    required: [query]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_QUERY: query
+      TOOL_INCLUDE_CASKS: include_casks
+  timeoutMs: 30000
+  maxOutputBytes: 262144
+  script:
+    path: ./scripts/brew__search.sh
+    interpreter: bash

@@ -1,0 +1,28 @@
+apiVersion: v1
+tool:
+  name: ass__healthz
+  description: |-
+    /**
+     * Check whether the ASS tool bundle runtime dependencies are available.
+     * @remarks Validates ffmpeg presence and returns a small JSON health report.
+     */
+  input:
+    properties: {}
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  timeoutMs: 10000
+  maxOutputBytes: 65536
+  script:
+    path: ./scripts/ass__healthz.sh
+    interpreter: bash

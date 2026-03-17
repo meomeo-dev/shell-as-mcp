@@ -1,0 +1,115 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__extract_frames_for_vision
+  description: |-
+    /**
+     * Extract image frames for multimodal vision prompts.
+     * @remarks Returns JSON in stdout with frame_paths and frame_count for direct LLM/prompt ingestion.
+     * @param input_path Source video path.
+      * @param output_dir Optional output directory. Falls back to FFMPEG_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR.
+     * @param start_time Optional start timestamp.
+     * @param end_time Optional end timestamp.
+     * @param fps Optional extraction fps (for example 0.5 for one frame every two seconds).
+     * @param keyframes_only Whether to extract only keyframes (I-frames).
+     * @param max_resolution Optional longest-edge cap for generated frames.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video path.
+      output_dir:
+        type: string
+        description: Optional output directory. Falls back to FFMPEG_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR.
+      start_time:
+        type: string
+        description: Optional start timestamp.
+      end_time:
+        type: string
+        description: Optional end timestamp.
+      fps:
+        type: number
+        description: Optional extraction fps.
+      keyframes_only:
+        type: boolean
+        description: Whether to extract only keyframes.
+      max_resolution:
+        type: integer
+        description: Optional longest-edge cap for generated frames.
+    required: [input_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromRuntime:
+      TOOL_OUTPUT_DIR: [FFMPEG_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
+    fromParams:
+      INPUT_PATH: input_path
+      TOOL_OUTPUT_DIR: output_dir
+      START_TIME: start_time
+      END_TIME: end_time
+      FPS: fps
+      KEYFRAMES_ONLY: keyframes_only
+      MAX_RESOLUTION: max_resolution
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 1048576
+  command:
+    executable: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+
+        OUTPUT_DIR="${TOOL_OUTPUT_DIR:?output_dir is required via output_dir, FFMPEG_OUTPUT_DIR, or SHELL_AS_MCP_OUTPUT_DIR}"
+        export OUTPUT_DIR
+        mkdir -p "$OUTPUT_DIR"
+        cmd=(ffmpeg -hide_banner -loglevel error -y)
+
+        if [ -n "${START_TIME:-}" ]; then
+          cmd+=( -ss "$START_TIME" )
+        fi
+        if [ -n "${END_TIME:-}" ]; then
+          cmd+=( -to "$END_TIME" )
+        fi
+
+        cmd+=( -i "$INPUT_PATH" )
+
+        filters=()
+        if [ "${KEYFRAMES_ONLY:-false}" = "true" ]; then
+          filters+=( "select='eq(pict_type\\,I)'" )
+        fi
+        if [ -n "${FPS:-}" ]; then
+          filters+=( "fps=${FPS}" )
+        fi
+        if [ -n "${MAX_RESOLUTION:-}" ]; then
+          filters+=( "scale='if(gt(iw,ih),min(${MAX_RESOLUTION},iw),-2)':'if(gt(iw,ih),-2,min(${MAX_RESOLUTION},ih))'" )
+        fi
+
+        if [ ${#filters[@]} -gt 0 ]; then
+          IFS=,
+          vf_chain="${filters[*]}"
+          unset IFS
+          cmd+=( -vf "$vf_chain" )
+        fi
+
+        if [ "${KEYFRAMES_ONLY:-false}" = "true" ]; then
+          cmd+=( -vsync vfr )
+        fi
+
+        cmd+=( -q:v 2 "$OUTPUT_DIR/frame_%06d.jpg" )
+        "${cmd[@]}"
+
+        node -e 'const fs=require("fs");const path=require("path");const dir=process.env.OUTPUT_DIR;const files=fs.readdirSync(dir).filter((f)=>/^frame_\d+\.jpg$/.test(f)).sort().map((f)=>path.join(dir,f));console.log(JSON.stringify({output_dir:dir,frame_count:files.length,frame_paths:files}))'

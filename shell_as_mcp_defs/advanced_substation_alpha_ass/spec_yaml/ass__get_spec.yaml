@@ -1,0 +1,38 @@
+apiVersion: v1
+tool:
+  name: ass__get_spec
+  description: |-
+    /**
+     * Returns the ASS (Advanced SubStation Alpha) subtitle format specification.
+     * @remarks Read-only reference tool. Returns structured spec content for the requested section.
+     *   No external files or network access required; content is fully embedded in the script.
+     * @param section Which section of the ASS spec to return. Default "all".
+     *   Allowed values: all | script_info | v4_styles | events | tags | colors | example
+     */
+  input:
+    properties:
+      section:
+        type: string
+        description: >-
+          Section of the ASS spec to retrieve.
+          Allowed: all | script_info | v4_styles | events | tags | colors | example.
+          Default: all.
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_SECTION: section
+  timeoutMs: 10000
+  script:
+    path: ./scripts/ass__get_spec.sh
+    interpreter: bash

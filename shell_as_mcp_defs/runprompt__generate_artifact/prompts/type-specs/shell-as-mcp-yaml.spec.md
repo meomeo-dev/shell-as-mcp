@@ -1,0 +1,72 @@
+# Artifact Spec: shell-as-mcp-yaml
+
+Generate one valid shell-as-mcp tool YAML document.
+
+## Required structure (canonical bundle example)
+
+```yaml
+apiVersion: v1
+tool:
+  name: <server>__<action>          # snake_case, e.g. demo_tree__get_tree
+  description: |-
+    /**
+     * One-line summary.
+     * @param param_name Description.
+     */
+  input:
+    properties:
+      param_name: { type: string, description: "..." }
+    required: [param_name]
+  output:
+    type: object
+    properties:
+      status:            { type: string }
+      exit_code:         { type: number }
+      stdout:            { type: string }
+      stderr:            { type: string }
+      command:           { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_PARAM_NAME: param_name   # UPPER_SNAKE_CASE env var <- tool param
+  timeoutMs: 30000
+  script:
+    path: scripts/<tool_name>.sh    # relative path to companion script in bundle
+    interpreter: bash
+```
+
+## Rules
+
+1. Root keys MUST include: `apiVersion`, `tool`, `execution`.
+2. `apiVersion` MUST be `v1`.
+3. `tool.name` MUST match the tool_name provided in requirements (snake_case).
+4. `tool.description` MUST be a valid TSDoc block comment (`/** ... */`).
+5. `tool.input.properties` MUST exist and be a YAML object (mapping). If the tool has no input parameters, use `properties: {}` and `required: []`.
+6. For tools that have input parameters, each parameter in `tool.input.properties` MUST define both `type` and `description`.
+7. `tool.output` MUST contain all standard execution fields shown above.
+8. **In shell-as-mcp-bundle context: ALWAYS use `execution.script`** — point `path` to `scripts/{tool_name}.sh`.
+9. **Pass ALL tool parameters as environment variables** via `execution.env.fromParams`. Use UPPER_SNAKE_CASE names; avoid shell reserved names (`PATH`, `HOME`, `USER`, `IFS`, `PS1`). Prefix with `TOOL_` when in doubt.
+10. `execution.command` is for **single executable + static args only**. ALLOWED examples:
+   ```yaml
+   execution:
+     command:
+       executable: ffmpeg
+       args: ["-version"]
+   ```
+   ```yaml
+   execution:
+     command:
+       executable: echo
+       args: ["hello", "world"]
+   ```
+11. **FORBIDDEN** — never use `execution.command` for any of the following patterns:
+    - `args: ["-c", "cmd1 && cmd2"]` — bash/sh inline script via `-c` flag
+    - `args: ["cmd1 && cmd2"]` — `&&` command chaining inside an arg
+    - `args: ["cmd1 ; cmd2"]`  — `;` command chaining inside an arg
+    - `args: ["cmd1 | cmd2"]`  — pipe chaining inside an arg
+    - **General rule**: if any arg contains shell operators (`&&`, `||`, `;`, `|`, `>`, `<`, `` ` ``), it is FORBIDDEN.
+    - **If multi-step logic is needed, use `execution.script`** (see Rule 7); the script file itself may contain arbitrary shell logic.
+12. Output MUST be raw YAML only (no markdown fences, no explanation).

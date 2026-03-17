@@ -1,0 +1,55 @@
+<!-- CD6K: Ribbon Glyph / Near YAML / scale +24% -->
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <g data-role="commands-anchor" data-tier="primary" data-bbox="18 56 241 181"/>
+  <g data-role="yaml-band" data-tier="secondary" data-bbox="74 108 355 253"/>
+  <g data-role="flow-arrow" data-tier="support" data-bbox="176 160 150 130"/>
+  <g data-role="tool-anchor" data-tier="primary" data-bbox="235 207 243 243"/>
+  <defs>
+    <filter id="glowK" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="7" result="b1"/>
+      <feMerge><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softK" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="ribbonB" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00ff41" stop-opacity="0.12"/>
+      <stop offset="44%" stop-color="#00ff41" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#00ff41" stop-opacity="0.16"/>
+    </linearGradient>
+    <pattern id="scanK" x="0" y="0" width="512" height="4" patternUnits="userSpaceOnUse">
+      <rect y="0" width="512" height="1.8" fill="black" opacity="0.34"/>
+    </pattern>
+  </defs>
+
+  <rect width="512" height="512" rx="84" fill="#041004"/>
+  <path d="M 28 352 C 122 280, 184 210, 246 218 C 304 224, 334 298, 486 286" fill="none" stroke="url(#ribbonB)" stroke-width="54" stroke-linecap="round" filter="url(#softK)"/>
+  <path d="M 28 352 C 122 280, 184 210, 246 218 C 304 224, 334 298, 486 286" fill="none" stroke="#00ff41" stroke-opacity="0.28" stroke-width="2.2" stroke-linecap="round"/>
+
+  <g transform="translate(124 146) scale(1.4384)" filter="url(#softK)">
+    <text x="0" y="20" text-anchor="middle" font-family="'Courier New', monospace" font-size="96" font-weight="700" fill="#9da9a0" opacity="0.72">$</text>
+    <circle cx="68" cy="-6" r="8" fill="#8e998f" opacity="0.54"/>
+    <rect x="82" y="-10" width="74" height="8" rx="4" fill="#828d84" opacity="0.42"/>
+    <rect x="82" y="10" width="94" height="7" rx="3.5" fill="#707970" opacity="0.32"/>
+  </g>
+
+  <g transform="translate(248 232) scale(1.6616)">
+    <path d="M -46 -52 L 34 -52 L 68 -18 L 68 54 L -46 54 Z" fill="#07110f" stroke="#bffff0" stroke-width="2.5" opacity="0.98" filter="url(#softK)"/>
+    <path d="M 34 -52 L 68 -18 L 34 -18 Z" fill="#e4fff8" opacity="0.28"/>
+    <rect x="-22" y="-18" width="66" height="10" rx="5" fill="#effffa" opacity="0.86"/>
+    <rect x="-22" y="8" width="80" height="8" rx="4" fill="#c9f6eb" opacity="0.66"/>
+    <rect x="-22" y="28" width="54" height="7" rx="3.5" fill="#8ccfc1" opacity="0.46"/>
+  </g>
+
+  <path d="M 226 254 L 270 210 L 296 236" fill="none" stroke="#d5fff6" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowK)" opacity="0.92"/>
+
+  <g transform="translate(356 320) scale(1.2896)">
+    <circle cx="0" cy="0" r="82" fill="#061006" stroke="#69d88b" stroke-width="2.3" opacity="0.9" filter="url(#softK)"/>
+    <text x="-6" y="28" text-anchor="middle" font-family="'Courier New', monospace" font-size="128" font-weight="900" fill="#74f097" opacity="0.92" filter="url(#glowK)">&gt;</text>
+    <rect x="38" y="28" width="68" height="15" rx="7" fill="#b9f0b7" opacity="0.8" filter="url(#glowK)"/>
+  </g>
+
+  <rect width="512" height="512" rx="84" fill="url(#scanK)"/>
+  <rect x="0" y="0" width="512" height="512" rx="84" fill="none" stroke="#00ff41" stroke-width="2" opacity="0.1"/>
+</svg>

@@ -1,0 +1,37 @@
+# Build directory
+bin/
+dist/
+/shell-as-mcp
+node_modules/
+
+# Python bytecode cache
+**/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+tmp/
+*.ignore.yaml
+
+# Context7 Knowledge Management Store (auto-downloaded)
+.kms/
+.todo_tasks/
+tasks/

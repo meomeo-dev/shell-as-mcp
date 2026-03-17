@@ -1,0 +1,58 @@
+apiVersion: v1
+tool:
+  name: ytdlp__download_video_subtitles
+  description: |-
+    /**
+      * Download subtitle files (VTT) for a video URL using yt-dlp, saving to output_dir or a configured default directory.
+     * @remarks Downloads both manual and auto-generated subtitles without downloading the video itself.
+     * @param url The video URL (must start with http:// or https://).
+     * @param language Subtitle language code. Defaults to "en".
+      * @param output_dir Optional output directory. Falls back to YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR, or ~/Downloads.
+      * @param cookies Optional path to a Netscape-format cookies file.
+     * @param proxy Optional proxy address.
+     */
+  input:
+    properties:
+      url:
+        type: string
+        description: "The video URL (must start with http:// or https://)."
+      language:
+        type: string
+        description: "Subtitle language code (e.g. en, zh-Hans). Defaults to \"en\"."
+      output_dir:
+        type: string
+        description: "Optional output directory. Falls back to YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR, or ~/Downloads."
+      cookies:
+        type: string
+        description: "Optional path to a Netscape-format cookies file."
+      proxy:
+        type: string
+        description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+    required: [url]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromRuntime:
+      TOOL_OUTPUT_DIR: [YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
+    fromParams:
+      TOOL_URL: url
+      TOOL_LANGUAGE: language
+      TOOL_OUTPUT_DIR: output_dir
+      TOOL_COOKIES: cookies
+      TOOL_PROXY: proxy
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 262144
+  script:
+    path: ./scripts/ytdlp__download_video_subtitles.sh
+    interpreter: bash

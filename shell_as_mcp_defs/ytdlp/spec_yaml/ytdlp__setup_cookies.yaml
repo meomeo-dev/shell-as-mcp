@@ -1,0 +1,41 @@
+apiVersion: v1
+tool:
+  name: ytdlp__setup_cookies
+  description: |-
+    /**
+     * Guide the user via macOS native dialogs to export browser cookies for
+     * authenticated yt-dlp requests using the "Get cookies.txt LOCALLY"
+     * browser extension. Clipboard content is validated and saved encrypted
+     * to ~/.config/shell-as-mcp/ytdlp_cookies.enc with a machine-local key.
+     * @remarks macOS only — requires osascript and pbpaste.
+     *          After setup, all ytdlp__ tools automatically fall back to the
+     *          stored cookies when no explicit cookies path is configured.
+     *          Cookies are AES-128-CBC encrypted; no output path is exposed.
+     * @param overwrite Whether to overwrite existing stored cookies. Default true.
+     */
+  input:
+    properties:
+      overwrite:
+        type: boolean
+        description: "If true (default), overwrite any existing stored cookies. If false and cookies already exist, exit immediately without prompting."
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_OVERWRITE: overwrite
+  timeoutMs: 120000
+  maxOutputBytes: 4096
+  script:
+    path: ./scripts/ytdlp__setup_cookies.sh
+    interpreter: bash

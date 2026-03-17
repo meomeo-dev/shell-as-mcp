@@ -1,0 +1,28 @@
+apiVersion: v1
+tool:
+  name: brew__healthz
+  description: |-
+    /**
+     * Check whether Homebrew tooling is available for brew MCP tools.
+     * @remarks Validates brew command presence and reports version in JSON.
+     */
+  input:
+    properties: {}
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  timeoutMs: 10000
+  maxOutputBytes: 65536
+  script:
+    path: ./scripts/brew__healthz.sh
+    interpreter: bash

@@ -1,0 +1,46 @@
+apiVersion: v1
+tool:
+  name: brew__upgrade
+  description: |-
+    /**
+     * Upgrade a specific Homebrew formula or cask to the latest version. Requires explicit user authorization.
+     * @remarks Two-layer authorization: (1) confirm_action must be true, (2) macOS displays a native authorization dialog the user must approve. A specific package_name is always required (no bulk upgrade without naming the package).
+     * @param package_name Name of the formula or cask to upgrade.
+     * @param cask Whether the package is a cask. Default false.
+     * @param confirm_action Must be set to true to authorize this upgrade.
+     */
+  input:
+    properties:
+      package_name:
+        type: string
+        description: "Name of the Homebrew formula or cask to upgrade."
+      cask:
+        type: boolean
+        description: "Set to true if upgrading a cask. Default false."
+      confirm_action:
+        type: boolean
+        description: "REQUIRED: must be true to authorize upgrade. Set only after user explicitly confirms."
+    required: [package_name, confirm_action]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_PACKAGE_NAME: package_name
+      TOOL_CASK: cask
+      TOOL_CONFIRM_ACTION: confirm_action
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/brew__upgrade.sh
+    interpreter: bash

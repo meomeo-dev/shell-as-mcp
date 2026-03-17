@@ -1,0 +1,50 @@
+apiVersion: v1
+tool:
+  name: ytdlp__get_video_metadata
+  description: |-
+    /**
+     * Fetch raw metadata JSON for a video URL using yt-dlp.
+     * @remarks Returns full or filtered metadata fields as JSON.
+     * @param url The video URL (must start with http:// or https://).
+     * @param fields Comma-separated field names to return (e.g. "title,uploader,view_count"); empty returns all.
+     * @param cookies Optional path to a Netscape-format cookies file.
+     * @param proxy Optional proxy address (e.g. socks5://127.0.0.1:1080).
+     */
+  input:
+    properties:
+      url:
+        type: string
+        description: "The video URL (must start with http:// or https://)."
+      fields:
+        type: string
+        description: "Comma-separated field names to return (e.g. \"title,uploader,view_count\"); empty returns all."
+      cookies:
+        type: string
+        description: "Optional path to a Netscape-format cookies file."
+      proxy:
+        type: string
+        description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+    required: [url]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_URL: url
+      TOOL_FIELDS: fields
+      TOOL_COOKIES: cookies
+      TOOL_PROXY: proxy
+  timeoutMs: 60000
+  maxOutputBytes: 2097152
+  script:
+    path: ./scripts/ytdlp__get_video_metadata.sh
+    interpreter: bash

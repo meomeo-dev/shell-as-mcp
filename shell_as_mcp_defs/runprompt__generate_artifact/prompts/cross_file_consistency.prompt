@@ -1,0 +1,49 @@
+---
+model: openrouter/deepseek/deepseek-v3.2
+tools:
+  - runprompt_tools.*
+---
+You are a senior engineer verifying parameter contract consistency across a 3-file shell-as-mcp-bundle. Your job is to detect any mismatch between what the YAML spec declares, what the shell script consumes, and what the dotprompt template expects.
+
+## Input
+
+Bundle files (JSON object with artifact type as key, file content as value):
+{{files}}
+
+## What to Check
+
+### YAML → Script consistency
+- Every env var listed in `execution.env.fromParams` (e.g. `TOOL_FOO: foo`) MUST appear in the shell script as `${TOOL_FOO}` or `${TOOL_FOO:?...}` or `${TOOL_FOO:-...}`
+- No env var should be declared in `fromParams` but never used in the script (dead mapping)
+- No variable referenced in the script (`$TOOL_*`) should be absent from `fromParams` (undefined reference)
+
+### YAML → dotprompt consistency
+- `tool.input.properties` parameter names MUST match the `input.schema` fields declared in the dotprompt frontmatter
+- Parameter types declared in YAML must align with how they are used in the dotprompt template body
+- No parameter used as `{{param_name}}` in the template body should be absent from the `input.schema`
+
+### Naming and structural integrity
+- `tool.name` in the YAML must be consistent with the script filename stem (e.g. `tool.name: demo__do_thing` → script file path contains `demo__do_thing.sh`). The `<server>__<action>` format with **double underscore** is the correct convention in this codebase — `shell__get_directory_tree` and `shell__get_directory_tree.sh` are consistent and correct. Do NOT flag the double underscore separator as an error.
+- All UPPER_SNAKE_CASE env vars in `fromParams` must correspond semantically — not just syntactically — to the matching snake_case param (e.g. `TOOL_INPUT_PATH: input_path` is correct; `TOOL_FOO: bar_path` is a mismatch)
+
+### Semantic usage (not just name presence)
+- Variables are used for the correct purpose in the script — e.g. a param declared as a file path is used in file operations, not as a command name
+- The dotprompt template variables are used in a meaningful, contextually correct way
+
+## Output Rules
+
+- Output ONLY the raw JSON object below, with NO markdown fences, NO explanation text.
+- `severity` must be one of: `"error"`, `"warning"`, `"info"`.
+- `passed` is `true` only when there are zero `"error"` severity issues.
+- `file` must be one of: `"shell-as-mcp-yaml"`, `"script"`, `"runprompt-prompt"`.
+- **IMPORTANT**: Only use `"error"` severity for actual contract violations that would cause runtime failures (e.g. env var declared in YAML but missing from script). Observations you note as "acceptable", "consistent", or "informational" MUST use `"info"` severity — never `"error"`.
+
+## Required JSON Schema
+
+{
+  "passed": true,
+  "issues": [
+    {"file": "script", "severity": "error", "description": "..."}
+  ],
+  "summary": "1-2 sentence summary of cross-file consistency"
+}

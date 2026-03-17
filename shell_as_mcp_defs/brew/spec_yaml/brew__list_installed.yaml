@@ -1,0 +1,40 @@
+apiVersion: v1
+tool:
+  name: brew__list_installed
+  description: |-
+    /**
+     * List all installed Homebrew packages (formulae and/or casks) with their versions.
+     * @remarks Returns structured JSON with formula and cask lists. Read-only operation, no authorization required.
+     * @param cask_only Whether to list only casks. Default false.
+     * @param formula_only Whether to list only formulae. Default false.
+     */
+  input:
+    properties:
+      cask_only:
+        type: boolean
+        description: "List only casks. Default false."
+      formula_only:
+        type: boolean
+        description: "List only formulae. Default false."
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      TOOL_CASK_ONLY: cask_only
+      TOOL_FORMULA_ONLY: formula_only
+  timeoutMs: 30000
+  maxOutputBytes: 524288
+  script:
+    path: ./scripts/brew__list_installed.sh
+    interpreter: bash

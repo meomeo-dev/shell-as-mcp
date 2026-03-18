@@ -1,21 +1,36 @@
+<p align="center">
+  <img src="icon.svg" width="120" alt="shell-as-mcp logo" />
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://github.com/meomeo-dev/shell-as-mcp"><img src="https://img.shields.io/github/stars/meomeo-dev/shell-as-mcp?style=social" alt="GitHub stars" /></a>
+</p>
+
+> 🌐 English | [中文](README.zh-CN.md)
+
 # shell-as-mcp
 
-TypeScript Shell-as-MCP Server：通过 **单文件 YAML 规范** 将 shell 命令映射为标准 MCP 工具。
+<p align="center">
+  <img src="image.png" alt="shell-as-mcp" width="500"/>
+</p>
+
+TypeScript Shell-as-MCP Server: maps shell commands to standard MCP tools via **single-file YAML specs**.
 
 ---
 
-## 1) YAML Spec 设计
+## 1) YAML Spec Design
 
-每个 YAML 文件定义一个 MCP 工具，根键必须包含 `apiVersion`、`tool`、`execution`。
+Each YAML file defines one MCP tool. The root must contain `apiVersion`, `tool`, and `execution`.
 
 ```yaml
 apiVersion: v1
 tool:
-  name: <server>__<action>        # snake_case，例如 brew__install
+  name: <server>__<action>        # snake_case, e.g. brew__install
   description: |-
     /**
-     * 一句话说明工具用途（TSDoc 格式，唯一描述字段）。
-     * @param param_name 参数说明
+     * One-line description of the tool's purpose (TSDoc format, sole description field).
+     * @param param_name Parameter description
      */
   input:
     properties:
@@ -35,215 +50,266 @@ tool:
 execution:
   shell:
     mode: direct                  # direct | shell
-    name: bash                    # 可选：bash | zsh | sh | pwsh | cmd
-    path: /usr/bin/bash           # 可选，优先于 name
-    args: ["-lc"]                 # 可选，未填使用默认
+    name: bash                    # optional: bash | zsh | sh | pwsh | cmd
+    path: /usr/bin/bash           # optional, takes precedence over name
+    args: ["-lc"]                 # optional, defaults used if omitted
   env:
     static:
       KEY: VALUE
     fromParams:
-      TOOL_ENV_KEY: inputParamName  # UPPER_SNAKE_CASE；不确定时加 TOOL_ 前缀
+      TOOL_ENV_KEY: inputParamName  # UPPER_SNAKE_CASE; add TOOL_ prefix if unsure
     fromRuntime:
-      TARGET_ENV: SOURCE_ENV        # 从服务运行时环境映射，支持优先级列表
+      TARGET_ENV: SOURCE_ENV        # maps from server runtime env; supports priority lists
       TOOL_OUTPUT_DIR: [YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
   compatibility:
     targets:
       - os: macos
         kernel: darwin
         arch: arm64
-        support: tested            # 可选：tested | declared
+        support: tested            # optional: tested | declared
         notes: Apple Silicon only validated target
   workingDirectory: /tmp/work
   timeoutMs: 30000
+  taskMode: sync                  # sync (default, returns result synchronously) | async (background task, returns taskId immediately)
   maxOutputBytes: 1048576
-  # 脚本模式（推荐：bundle 中始终使用此模式）
+  # Script mode (recommended: always use this in bundles)
   script:
-    path: ./scripts/<tool_name>.sh  # 相对于 YAML 所在目录
+    path: ./scripts/<tool_name>.sh  # relative to the YAML file's directory
     interpreter: bash
-  # 命令模式（仅用于单一可执行文件 + 静态参数，禁止在 args 中使用 && || ; | > <）
+  # Command mode (only for a single executable + static args; forbid && || ; | > < in args)
   # command:
   #   executable: ffmpeg
   #   args: ["-version"]
 ```
 
-**关键约束：**
+**Key constraints:**
 
-- `tool.name` 格式为 `<server>__<action>`，全小写 snake_case
-- `tool.description` 必须为 TSDoc `/** */` 块注释
-- `execution.env.fromParams` 环境变量名用 UPPER_SNAKE_CASE；与系统保留名（`PATH`、`HOME`、`USER` 等）冲突时加 `TOOL_` 前缀
-- `execution.compatibility` 是可选兼容性元数据（compatibility metadata）；若存在，`targets` 必须是非空数组，且每个 target 的 `os`、`kernel`、`arch` 都必须为非空字符串
-- `targets[].support` 可选且仅允许 `tested` 或 `declared`；`targets[].notes` 可选且必须为字符串
-- 若 target 标记为 `support: tested`，必须在同 bundle 的 `scripts/` 下提供对应 per-target smoke test：`{prefix}__smoke_test__{kernel}_{arch}.sh`（例如 `brew__smoke_test__darwin_arm64.sh`）
-- **`execution.command` 禁用**：args 中含 `&&`、`||`、`;`、`|`、`>`、`<` 等 shell 操作符时禁止使用；多步逻辑必须用 `execution.script`
-- 每个 YAML 只定义一个工具
-- `execution.env.fromRuntime` 支持字符串数组，按从左到右优先级短路匹配；适合表达组级默认值到全局默认值的 fallback
+- `tool.name` format is `<server>__<action>`, all lowercase snake_case
+- `tool.description` must be a TSDoc `/** */` block comment
+- `execution.env.fromParams` env var names use UPPER_SNAKE_CASE; add `TOOL_` prefix when clashing with reserved names (`PATH`, `HOME`, `USER`, etc.)
+- `execution.compatibility` is optional compatibility metadata; if present, `targets` must be a non-empty array and each target's `os`, `kernel`, `arch` must be non-empty strings
+- `targets[].support` is optional and only allows `tested` or `declared`; `targets[].notes` is optional and must be a string
+- If a target is marked `support: tested`, a corresponding per-target smoke test must exist under the bundle's `scripts/`: `{prefix}__smoke_test__{kernel}_{arch}.sh` (e.g. `brew__smoke_test__darwin_arm64.sh`)
+- **`execution.command` is forbidden** when args contain shell operators (`&&`, `||`, `;`, `|`, `>`, `<`); multi-step logic must use `execution.script`
+- Each YAML defines exactly one tool
+- `execution.env.fromRuntime` supports a string array, resolved left-to-right with short-circuit; ideal for expressing group-level to global-level fallback chains
+- `execution.taskMode` controls execution mode: `sync` (default, returns result synchronously) or `async` (background task, returns `taskId` immediately; query status via Task management tools)
 
-### 1.1 compatibility 元数据（Compatibility Metadata）
+### 1.1 Compatibility Metadata
 
-`execution.compatibility.targets` 表达的是“已知运行目标（known runtime targets）”，不是“唯一允许执行的平台（hard platform gate）”。
+`execution.compatibility.targets` declares "known runtime targets", not a "hard platform gate".
 
-- 推荐把每个 target 当作一个完整元组（tuple）来声明，避免把 `os`、`kernel`、`arch` 拆成独立列表后产生错误的笛卡尔积（cartesian product）含义。
-- `support: tested` 表示该目标有实际验证证据；省略或 `declared` 表示声明可运行，但当前仓库未把它当作运行时拦截条件。
-- `support: tested` 的证据载体为 per-target smoke test 脚本：`{prefix}__smoke_test__{kernel}_{arch}.sh`；lint 会进行存在性校验。
-- 当前 loader 与 lint 会校验字段结构，但服务启动与工具暴露逻辑不会因为该字段而做平台过滤（platform filtering）。
+- Declare each target as a complete tuple to avoid generating incorrect cartesian products by splitting `os`, `kernel`, `arch` into separate lists.
+- `support: tested` means the target has actual validation evidence; omitting it or using `declared` means the target is claimed to work, but the repository does not use this field as a runtime enforcement condition.
+- The evidence for `support: tested` is a per-target smoke test script: `{prefix}__smoke_test__{kernel}_{arch}.sh`; lint verifies its existence.
+- The current loader and lint validate the field structure, but the server startup and tool exposure logic do not perform platform filtering based on this field.
 
-### 1.2 healthz 契约（Health Check Contract）
+### 1.2 Health Check Contract
 
-`__healthz` 工具的职责（responsibility）是做**依赖可用性探测（dependency availability probe）**，不是业务功能执行（business execution）。
+The `__healthz` tool's responsibility is **dependency availability probing**, not business execution.
 
-- 目标：快速判断某个 command bundle 的关键运行时依赖是否存在并可调用。
-- 输出语义：`status=success` 表示依赖可用；`status=error` 表示依赖缺失或不可调用。
-- 失败边界：healthz 失败只说明该 bundle 当前环境不满足运行条件，不应伪装为成功。
-- 设计要求：healthz 必须保持轻量（lightweight）与可重复执行（idempotent），避免副作用。
+- Goal: quickly determine whether the key runtime dependencies of a command bundle are present and callable.
+- Output semantics: `status=success` means dependencies are available; `status=error` means a dependency is missing or not callable.
+- Failure boundary: a healthz failure only indicates that the bundle's runtime requirements are not met in the current environment; it must not masquerade as success.
+- Design requirement: healthz must stay lightweight and idempotent, with no side effects.
 
-### 1.3 0 参数工具与 Lint 规则（Zero-Parameter Tool Rule）
+### 1.3 Zero-Parameter Tool Rule
 
-对 0 参数工具（zero-parameter tools，例如 healthz），YAML 输入契约必须满足：
+For zero-parameter tools (e.g. healthz), the YAML input contract must satisfy:
 
-- `tool.input` 必须存在且是 mapping（对象）。
-- `tool.input.properties` 必须存在且是 mapping；允许为空对象。
-- `tool.input.required` 对 0 参数工具应为空列表。
-- 不允许为了“通过校验”引入虚拟参数（dummy parameter）。
+- `tool.input` must exist and be a mapping (object).
+- `tool.input.properties` must exist and be a mapping; empty object is allowed.
+- `tool.input.required` should be an empty list for zero-parameter tools.
+- Introducing dummy parameters just to "pass validation" is not allowed.
 
-Lint 对齐规则：
+Lint alignment rules:
 
-- Lint 校验 `tool.input.properties` 的**存在性与类型**，不再强制“非空”。
-- 这样可确保 0 参数工具的合法表达与运行时行为（runtime behavior）一致。
+- Lint validates the **existence and type** of `tool.input.properties`, no longer enforcing non-empty.
+- This ensures zero-parameter tools are expressed legally and consistently with their runtime behavior.
 
-完整规范参见 [`shell_as_mcp_defs/runprompt__generate_artifact/prompts/type-specs/shell-as-mcp-yaml.spec.md`](shell_as_mcp_defs/runprompt__generate_artifact/prompts/type-specs/shell-as-mcp-yaml.spec.md)。
+For the full spec, see [`shell_as_mcp_defs/runprompt__generate_artifact/prompts/type-specs/shell-as-mcp-yaml.spec.md`](shell_as_mcp_defs/runprompt__generate_artifact/prompts/type-specs/shell-as-mcp-yaml.spec.md).
+
+### 1.4 `__mcp_response_mode` Parameter
+
+Every tool has an implicitly injected optional parameter `__mcp_response_mode`:
+
+| Value | Description |
+| --- | --- |
+| `content` (default) | Returns result via the MCP `content` field |
+| `structuredContent` | Returns result via the MCP `structuredContent` field |
+
+Typically you do not need to pass this explicitly; the default `content` mode is sufficient.
 
 ---
 
-## 2) 如何开发 shell_as_mcp_defs
+## 2) Developing shell_as_mcp_defs
 
-`shell_as_mcp_defs/` 下每个子目录是一个 **command bundle**，结构如下：
+Each subdirectory under `shell_as_mcp_defs/` is a **command bundle** with the following layout:
 
 ```
 shell_as_mcp_defs/<server>/
-  spec_yaml/          # 每工具一个 YAML 定义文件
-  scripts/            # 每工具一个 .sh 脚本（被 YAML 的 execution.script.path 引用）
-  prompts/            # 可选：runprompt 提示词模板
+  spec_yaml/          # one YAML definition file per tool
+  scripts/            # one .sh script per tool (referenced by execution.script.path in the YAML)
+  prompts/            # optional: runprompt prompt templates
 ```
 
-**手动开发流程：**
+**Manual development workflow:**
 
-1. 在 `spec_yaml/` 下创建 `<server>__<action>.yaml`，遵循第 1 节规范
-2. 在 `scripts/` 下创建同名 `.sh`，通过 `$TOOL_*` 环境变量读入参数
-3. 运行 `bash scripts/lint/lint_all.sh` 验证
+1. Create `<server>__<action>.yaml` under `spec_yaml/`, following the §1 spec
+2. Create the matching `.sh` under `scripts/`, reading params via `$TOOL_*` env vars
+3. Run `bash scripts/lint/lint_all.sh` to validate
 
-**通过 `runprompt__generate_artifact` 工具生成：**
+**Generating via `runprompt__generate_artifact`:**
 
-> ⚠️ **开发中（WIP）**：`runprompt__generate_artifact` 的自动生成功能仍在开发阶段，尚不稳定。`type-specs/` 下的规范文档可直接用于手动开发参考，但不建议依赖该工具在生产环境自动生成 bundle。
+> ⚠️ **Work in Progress (WIP)**: The auto-generation feature of `runprompt__generate_artifact` is still under development and not yet stable. The spec documents under `type-specs/` can be used directly as a reference for manual development, but relying on this tool to auto-generate bundles in production is not recommended.
 
-`runprompt__generate_artifact` 可让 LLM 一次生成完整 bundle（YAML + 脚本 + 可选 prompt），产物自动写入 `SHELL_AS_MCP_SPEC_DIR/<server_name>/`。
+`runprompt__generate_artifact` lets an LLM generate a complete bundle (YAML + scripts + optional prompts) in one shot, with the output automatically written to `SHELL_AS_MCP_SPEC_DIR/<server_name>/`.
 
-> **LLM 开发新 bundle 的指引（AI prompt）**
+> **Guidance for LLMs developing a new bundle (AI prompt)**
 >
-> 开发新的 `shell_as_mcp_defs` bundle 时：
+> When developing a new `shell_as_mcp_defs` bundle:
 >
-> 1. 完整规范参见 `shell_as_mcp_defs/runprompt__generate_artifact/prompts/type-specs/`：
->    - `shell-as-mcp-yaml.spec.md` — YAML 结构与禁止模式
->    - `script.spec.md` — 对应 shell 脚本规范
->    - `runprompt-prompt.spec.md` — runprompt 提示词规范
-> 2. 参考现有 bundle 示例：`brew/`、`ytdlp/`、`host_info/`、`ffmpeg/`
-> 3. 所有工具入参必须通过 `execution.env.fromParams` 映射为 UPPER_SNAKE_CASE 环境变量，加 `TOOL_` 前缀；脚本只读 `$TOOL_*`，不直接读 `$1`
-> 4. 脚本中尽早校验参数（fail fast）；敏感操作须在脚本内二次鉴权，不依赖调用方
-> 5. `execution.command` 仅用于单行静态命令；多步逻辑一律用 `execution.script`
+> 1. Full spec is in `shell_as_mcp_defs/runprompt__generate_artifact/prompts/type-specs/`:
+>    - `shell-as-mcp-yaml.spec.md` — YAML structure and forbidden patterns
+>    - `script.spec.md` — corresponding shell script spec
+>    - `runprompt-prompt.spec.md` — runprompt prompt spec
+> 2. Reference existing bundle examples: `brew/`, `ytdlp/`, `host_info/`, `ffmpeg/`
+> 3. All tool input params must be mapped to UPPER_SNAKE_CASE env vars via `execution.env.fromParams` with `TOOL_` prefix; scripts only read `$TOOL_*`, never `$1`
+> 4. Validate params early in scripts (fail fast); sensitive operations must be re-authorized inside the script and must not rely on the caller for authorization
+> 5. `execution.command` is only for single-line static commands; multi-step logic must always use `execution.script`
 
 ---
 
-## 3) 预设工具
+## 3) Built-in Tools
 
-> 所有 bundle 位于 `shell_as_mcp_defs/`，启动时从 `SHELL_AS_MCP_SPEC_DIR` 加载。
+> All bundles are under `shell_as_mcp_defs/` and loaded from `SHELL_AS_MCP_SPEC_DIR` at startup.
 
 ### 3.1 host_info
 
-| 工具 | 描述 |
+| Tool | Description |
 | --- | --- |
-| `host_info__get_host_context` | 采集主机系统上下文（OS、locale、timezone、hardware、~35 种开发工具版本），适合作为代码执行任务的第一步调用 |
+| `host_info__healthz` | Probes whether host_info bundle runtime dependencies are available |
+| `host_info__get_host_context` | Collects host system context (OS, locale, timezone, hardware, ~35 dev tool versions); ideal as the first call before code execution tasks |
 
-**参数：**
+**Parameters:**
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `include_hardware` | boolean | 否 | 是否包含 CPU 数和内存大小，默认 `true` |
-| `filter_tools` | string | 否 | 逗号分隔的工具名（如 `python3,node`），空 = 检查全部 |
-| `output_format` | string | 否 | `pretty`（默认）或 `compact` |
+| `include_hardware` | boolean | No | Whether to include CPU count and memory size; default `true` |
+| `filter_tools` | string | No | Comma-separated tool names (e.g. `python3,node`); empty = check all |
+| `output_format` | string | No | `pretty` (default) or `compact` |
 
 ---
 
 ### 3.2 ffmpeg
 
-| 工具 | 描述 | 必填参数 | 可选参数 |
+| Tool | Description | Required Params | Optional Params |
 | --- | --- | --- | --- |
-| `ffmpeg__process_video_for_llm` | 视频预处理（裁剪/缩放/降帧/倍速/去音频/水印） | `input_path`, `output_path` | `start_time`, `end_time`, `max_resolution`, `fps`, `speed_factor`, `strip_audio`, `watermark_path` |
-| `ffmpeg__process_audio_for_stt` | 音频预处理（片段/降采样/单声道/静音移除） | `input_path`, `output_path` | `start_time`, `end_time`, `sample_rate`, `channels`, `remove_silence`, `audio_format` |
-| `ffmpeg__extract_frames_for_vision` | 视觉抽帧（低帧率或关键帧） | `input_path` | `output_dir`, `start_time`, `end_time`, `fps`, `keyframes_only`, `max_resolution` |
-| `ffmpeg__create_video_summary` | 蒙太奇摘要视频（多输入采样拼接） | `input_paths`, `output_path` | `interval_sec`, `clip_duration_sec`, `merge_audio` |
+| `ffmpeg__healthz` | Probes whether ffmpeg bundle runtime dependencies (ffmpeg/ffprobe) are available | — | — |
+| `ffmpeg__process_video_for_llm` | Video preprocessing (trim/scale/fps/speed/strip audio/watermark) | `input_path`, `output_path` | `start_time`, `end_time`, `max_resolution`, `fps`, `speed_factor`, `strip_audio`, `watermark_path` |
+| `ffmpeg__process_audio_for_stt` | Audio preprocessing (segment/resample/mono/silence removal) | `input_path`, `output_path` | `start_time`, `end_time`, `sample_rate`, `channels`, `remove_silence`, `audio_format` |
+| `ffmpeg__extract_frames_for_vision` | Frame extraction for vision (low fps or keyframes) | `input_path` | `output_dir`, `start_time`, `end_time`, `fps`, `keyframes_only`, `max_resolution` |
+| `ffmpeg__create_video_summary` | Montage summary video (multi-input sampling and concatenation) | `input_paths`, `output_path` | `interval_sec`, `clip_duration_sec`, `merge_audio` |
 
-### 3.2.1 ffmpeg 输出目录默认值策略
+### 3.2.1 ffmpeg Output Directory Defaults
 
-当前仅对 `ffmpeg__extract_frames_for_vision` 生效。
+Currently applies only to `ffmpeg__extract_frames_for_vision`.
 
-优先级如下：
+Priority order:
 
-1. 显式参数 `output_dir`
-2. 组级环境变量 `FFMPEG_OUTPUT_DIR`
-3. 全局环境变量 `SHELL_AS_MCP_OUTPUT_DIR`
+1. Explicit parameter `output_dir`
+2. Group-level env var `FFMPEG_OUTPUT_DIR`
+3. Global env var `SHELL_AS_MCP_OUTPUT_DIR`
 
-该工具仍然保持“目录输出”契约不变，只是允许在未显式传参时，从运行时环境补齐默认目录。
+The tool's "directory output" contract remains unchanged; this only allows the default directory to be sourced from the runtime environment when no explicit parameter is passed.
 
 ---
 
 ### 3.3 brew
 
-> ⚠️ `brew__install` / `brew__uninstall` / `brew__upgrade` 需将 `confirm_action=true` 以授权执行，脚本还会弹出 macOS 原生授权对话框。
+> ⚠️ `brew__install` / `brew__uninstall` / `brew__upgrade` require `confirm_action=true` to authorize execution; the script will also prompt a native macOS authorization dialog.
 
-| 工具 | 描述 | 必填参数 | 可选参数 |
+| Tool | Description | Required Params | Optional Params |
 | --- | --- | --- | --- |
-| `brew__info` | 查询 formula/cask 详情（版本、依赖、homepage） | `package_name` | `cask` |
-| `brew__search` | 搜索包 | `query` | `include_casks` |
-| `brew__list_installed` | 列出已安装包 | — | `casks_only`, `formulae_only` |
-| `brew__install` | 安装 formula/cask | `package_name`, `confirm_action` | `cask` |
-| `brew__uninstall` | 卸载 formula/cask | `package_name`, `confirm_action` | `cask`, `force` |
-| `brew__upgrade` | 升级 formula/cask | `package_name`, `confirm_action` | `cask` |
+| `brew__healthz` | Probes whether brew bundle runtime dependencies (Homebrew) are available | — | — |
+| `brew__info` | Query formula/cask details (version, dependencies, homepage) | `package_name` | `cask` |
+| `brew__search` | Search packages | `query` | `include_casks` |
+| `brew__list_installed` | List installed packages | — | `casks_only`, `formulae_only` |
+| `brew__install` | Install a formula/cask | `package_name`, `confirm_action` | `cask` |
+| `brew__uninstall` | Uninstall a formula/cask | `package_name`, `confirm_action` | `cask`, `force` |
+| `brew__upgrade` | Upgrade a formula/cask | `package_name`, `confirm_action` | `cask` |
 
 ---
 
 ### 3.4 ytdlp
 
-> `cookies` 参数接受 Netscape 格式 cookies 文件路径；也可先运行 `ytdlp__setup_cookies` 将 cookies 加密存储，后续工具在未指定 `cookies` 时自动回退使用。
+> The `cookies` parameter accepts a path to a Netscape-format cookies file. You can also run `ytdlp__setup_cookies` first to encrypt and store cookies; subsequent tools will automatically fall back to these stored cookies when `cookies` is not specified.
 
-| 工具 | 描述 | 必填参数 | 可选参数 |
+| Tool | Description | Required Params | Optional Params |
 | --- | --- | --- | --- |
-| `ytdlp__setup_cookies` | 引导 macOS 用户通过浏览器扩展导出 cookies 并加密保存（macOS only） | — | `overwrite` |
-| `ytdlp__download_video` | 下载视频（支持分辨率选择和时间段裁剪） | `url` | `resolution`, `startTime`, `endTime`, `output_dir`, `cookies`, `proxy` |
-| `ytdlp__download_audio` | 下载音频 | `url` | `output_dir`, `cookies`, `proxy` |
-| `ytdlp__download_transcript` | 下载字幕文本内容 | `url` | `language`, `cookies`, `proxy` |
-| `ytdlp__download_video_subtitles` | 下载字幕文件 | `url` | `language`, `output_dir`, `cookies`, `proxy` |
-| `ytdlp__list_subtitle_languages` | 列出视频可用字幕语言 | `url` | `cookies`, `proxy` |
-| `ytdlp__get_video_metadata` | 获取视频完整元数据 JSON | `url` | `fields`, `cookies`, `proxy` |
-| `ytdlp__get_video_metadata_summary` | 获取视频元数据摘要（标题/时长/频道等） | `url` | `cookies`, `proxy` |
-| `ytdlp__get_video_comments` | 获取评论列表 | `url` | `max_count`, `sort`, `cookies` |
-| `ytdlp__get_video_comments_summary` | 获取评论摘要 | `url` | `count`, `cookies`, `proxy` |
-| `ytdlp__search_videos` | 搜索视频 | `query` | `count`, `offset`, `format` |
+| `ytdlp__healthz` | Probes whether ytdlp bundle runtime dependencies (yt-dlp) are available | — | — |
+| `ytdlp__setup_cookies` | Guides macOS users through exporting cookies via a browser extension and encrypts/saves them (macOS only) | — | `overwrite` |
+| `ytdlp__download_video` | Download video (supports resolution selection and time-range clipping) | `url` | `resolution`, `startTime`, `endTime`, `output_dir`, `cookies`, `proxy` |
+| `ytdlp__download_audio` | Download audio | `url` | `output_dir`, `cookies`, `proxy` |
+| `ytdlp__download_transcript` | Download subtitle text content | `url` | `language`, `cookies`, `proxy` |
+| `ytdlp__download_video_subtitles` | Download subtitle files | `url` | `language`, `output_dir`, `cookies`, `proxy` |
+| `ytdlp__list_subtitle_languages` | List available subtitle languages for a video | `url` | `cookies`, `proxy` |
+| `ytdlp__get_video_metadata` | Retrieve full video metadata as JSON | `url` | `fields`, `cookies`, `proxy` |
+| `ytdlp__get_video_metadata_summary` | Retrieve video metadata summary (title/duration/channel/etc.) | `url` | `cookies`, `proxy` |
+| `ytdlp__get_video_comments` | Retrieve comment list | `url` | `max_count`, `sort`, `cookies` |
+| `ytdlp__get_video_comments_summary` | Retrieve comment summary | `url` | `count`, `cookies`, `proxy` |
+| `ytdlp__search_videos` | Search videos | `query` | `count`, `offset`, `format` |
 
-### 3.4.1 输出目录默认值策略
+### 3.4.1 Output Directory Priority
 
-仅对 ytdlp 下载类工具生效：`ytdlp__download_video`、`ytdlp__download_audio`、`ytdlp__download_video_subtitles`。
+Applies only to ytdlp download tools: `ytdlp__download_video`, `ytdlp__download_audio`, `ytdlp__download_video_subtitles`.
 
-优先级如下：
+Priority order:
 
-1. 显式参数 `output_dir`
-2. 组级环境变量 `YTDLP_OUTPUT_DIR`
-3. 全局环境变量 `SHELL_AS_MCP_OUTPUT_DIR`
-4. 历史默认值 `~/Downloads`
+1. Explicit parameter `output_dir`
+2. Group-level env var `YTDLP_OUTPUT_DIR`
+3. Global env var `SHELL_AS_MCP_OUTPUT_DIR`
+4. Historical default `~/Downloads`
 
-脚本统一读取 `TOOL_OUTPUT_DIR`，bundle 通过 `execution.env.fromRuntime` 与 `execution.env.fromParams` 完成映射；这不会改变 `output_path` / `output_dir` 既有语义，只是为下载类工具补充默认值来源。
+Scripts uniformly read `TOOL_OUTPUT_DIR`; the bundle handles the mapping via `execution.env.fromRuntime` and `execution.env.fromParams`. This does not change the existing semantics of `output_path` / `output_dir`; it merely adds default value sources for download tools.
 
 ---
 
-## 4) 运行方式
+### 3.5 shell
+
+| Tool | Description | Required Params | Optional Params |
+| --- | --- | --- | --- |
+| `shell__healthz` | Probes whether shell bundle base runtime (bash) is available | — | — |
+| `shell__run_script_echo` | Runs a local script and echo-prefixes the input value (for development debugging) | `value` | — |
+
+---
+
+### 3.6 advanced_substation_alpha_ass
+
+Advanced SubStation Alpha (ASS) subtitle format toolkit.
+
+| Tool | Description | Required Params | Optional Params |
+| --- | --- | --- | --- |
+| `ass__healthz` | Probes whether ASS bundle runtime dependencies (ffmpeg) are available | — | — |
+| `ass__create_template` | Creates a new ASS v4.00+ subtitle template file (with Default/Title/Note styles) | `output_path` | `title`, `play_res_x`, `play_res_y`, `overwrite` |
+| `ass__get_spec` | Returns the ASS format specification document (read-only reference tool) | — | — |
+| `ass__lint` | Validates/lints an ASS subtitle file (16 structural rules) | `ass_file_path` | `strict` |
+| `ass__smoke_test` | Renders a test video to verify ASS subtitle renderability (requires ffmpeg) | `ass_file_path`, `output_path` | `duration_sec`, `resolution`, `background_color` |
+
+---
+
+### 3.7 runprompt__generate_artifact
+
+> ⚠️ **Work in Progress (WIP)**: The auto-generation feature is still under development and not yet stable.
+
+| Tool | Description | Required Params | Optional Params |
+| --- | --- | --- | --- |
+| `runprompt__healthz` | Probes whether runprompt bundle runtime prerequisites (python3) are available | — | — |
+| `runprompt__generate_artifact` | Uses runprompt + LLM to auto-generate a complete shell-as-mcp bundle under `SHELL_AS_MCP_SPEC_DIR` | `artifact_type`, `requirements` | `server_name`, `tool_name`, `max_repair_rounds`, `run_tests`, `run_code_review`, `run_security_review` |
+
+---
+
+## 4) Running
 
 ```bash
 npm install
@@ -251,13 +317,13 @@ npm run build
 npm start
 ```
 
-### 4.1 通过 GitHub 仓库 `npx -y` 启动（stdio）
+### 4.1 Launch via GitHub npx -y (stdio)
 
 ```bash
 npx -y github:meomeo-dev/shell-as-mcp --transport stdio
 ```
 
-若使用 `runprompt__generate_artifact` 工具，需额外安装 `runprompt`：
+If you use the `runprompt__generate_artifact` tool, install `runprompt` separately:
 
 ```bash
 # Using uv (recommended)
@@ -266,29 +332,30 @@ uv pip install git+https://github.com/chr15m/runprompt
 pip install "git+https://github.com/chr15m/runprompt.git"
 ```
 
-### 4.2 启动参数与环境变量
+### 4.2 Startup Options & Environment Variables
 
-| 参数 | 环境变量 | 默认值 | 说明 |
+| Option | Env Var | Default | Description |
 | --- | --- | --- | --- |
-| `--transport` | `SHELL_AS_MCP_TRANSPORT` | `stdio` | `stdio` 或 `streamable-http` |
-| `--spec-dir` | `SHELL_AS_MCP_SPEC_DIR` | `./shell_as_mcp_defs` | YAML spec 目录（overlay） |
-| `--host` | `SHELL_AS_MCP_HTTP_HOST` | `127.0.0.1` | HTTP 监听地址 |
-| `--port` | `SHELL_AS_MCP_HTTP_PORT` | `3001` | HTTP 监听端口 |
-| `--http-path` | `SHELL_AS_MCP_HTTP_PATH` | `/mcp` | HTTP 路径 |
-| — | `SHELL_AS_MCP_SERVER_NAME` | `shell-as-mcp` | MCP server 名称 |
-| — | `SHELL_AS_MCP_SERVER_VERSION` | `package.json` version | MCP server 版本 |
+| `--transport` | `SHELL_AS_MCP_TRANSPORT` | `stdio` | `stdio` or `streamable-http` |
+| `--spec-dir` | `SHELL_AS_MCP_SPEC_DIR` | `./shell_as_mcp_defs` | YAML spec directory (overlay) |
+| `--host` | `SHELL_AS_MCP_HTTP_HOST` | `127.0.0.1` | HTTP listen address |
+| `--port` | `SHELL_AS_MCP_HTTP_PORT` | `3001` | HTTP listen port |
+| `--http-path` | `SHELL_AS_MCP_HTTP_PATH` | `/mcp` | HTTP path |
+| `--max-concurrent-tasks` | `SHELL_AS_MCP_MAX_CONCURRENT_TASKS` | — (unlimited) | Max concurrent background async tasks |
+| — | `SHELL_AS_MCP_SERVER_NAME` | `shell-as-mcp` | MCP server name |
+| — | `SHELL_AS_MCP_SERVER_VERSION` | `package.json` version | MCP server version |
 
-### 4.3 内置 Spec 与扩展目录
+### 4.3 Built-in Spec vs. Overlay Directory
 
-内置 `shell_as_mcp_defs/` 中的工具**始终从包内直接加载**；`SHELL_AS_MCP_SPEC_DIR` 是**扩展叠加目录**（overlay），额外加载其中的工具，同名工具以用户目录为准（覆盖内置）。
+The tools in the built-in `shell_as_mcp_defs/` are **always loaded directly from the package**. `SHELL_AS_MCP_SPEC_DIR` is an **overlay directory** that additionally loads tools from it; tools with the same name as built-in ones are overridden by the user directory.
 
-- 默认值为 `./shell_as_mcp_defs`（与内置路径相同时只加载一次）
+- The default value is `./shell_as_mcp_defs` (loaded only once when it matches the built-in path).
 
 ---
 
-## 5) mcpServers 配置
+## 5) mcpServers Configuration
 
-### 5.1 stdio（推荐本地使用）
+### 5.1 stdio (recommended for local use)
 
 ```json
 {
@@ -332,94 +399,132 @@ pip install "git+https://github.com/chr15m/runprompt.git"
 }
 ```
 
-### 5.3 MCP 配置可用环境变量
+### 5.3 Available Environment Variables
 
-下面这些环境变量可以直接放进 `mcpServers.<name>.env`。
+All of the following env vars can be placed directly in `mcpServers.<name>.env`.
 
-#### 服务启动类
+#### Server Startup
 
-| 环境变量 | 作用 | 默认值 |
+| Env Var | Purpose | Default |
 | --- | --- | --- |
-| `SHELL_AS_MCP_TRANSPORT` | 传输模式：`stdio` 或 `streamable-http` | `stdio` |
-| `SHELL_AS_MCP_SPEC_DIR` | 扩展 spec 目录（overlay） | `./shell_as_mcp_defs` |
-| `SHELL_AS_MCP_HTTP_HOST` | HTTP 监听地址 | `127.0.0.1` |
-| `SHELL_AS_MCP_HTTP_PORT` | HTTP 监听端口 | `3001` |
-| `SHELL_AS_MCP_HTTP_PATH` | HTTP 路径 | `/mcp` |
-| `SHELL_AS_MCP_SERVER_NAME` | MCP server 名称 | `shell-as-mcp` |
-| `SHELL_AS_MCP_SERVER_VERSION` | MCP server 版本 | `package.json` version |
+| `SHELL_AS_MCP_TRANSPORT` | Transport mode: `stdio` or `streamable-http` | `stdio` |
+| `SHELL_AS_MCP_SPEC_DIR` | Overlay spec directory | `./shell_as_mcp_defs` |
+| `SHELL_AS_MCP_HTTP_HOST` | HTTP listen address | `127.0.0.1` |
+| `SHELL_AS_MCP_HTTP_PORT` | HTTP listen port | `3001` |
+| `SHELL_AS_MCP_HTTP_PATH` | HTTP path | `/mcp` |
+| `SHELL_AS_MCP_SERVER_NAME` | MCP server name | `shell-as-mcp` |
+| `SHELL_AS_MCP_SERVER_VERSION` | MCP server version | `package.json` version |
+| `SHELL_AS_MCP_MAX_CONCURRENT_TASKS` | Max concurrent background async tasks | — (unlimited) |
 
-#### 输出目录默认值类
+#### Output Directory Defaults
 
-| 环境变量 | 作用 | 当前适用范围 |
+| Env Var | Purpose | Applicable Tools |
 | --- | --- | --- |
-| `SHELL_AS_MCP_OUTPUT_DIR` | 全局输出目录兜底 | `ytdlp__download_video`、`ytdlp__download_audio`、`ytdlp__download_video_subtitles`、`ffmpeg__extract_frames_for_vision` |
-| `YTDLP_OUTPUT_DIR` | ytdlp 组级输出目录 | `ytdlp__download_video`、`ytdlp__download_audio`、`ytdlp__download_video_subtitles` |
-| `FFMPEG_OUTPUT_DIR` | ffmpeg 组级输出目录 | `ffmpeg__extract_frames_for_vision` |
+| `SHELL_AS_MCP_OUTPUT_DIR` | Global output directory fallback | `ytdlp__download_video`, `ytdlp__download_audio`, `ytdlp__download_video_subtitles`, `ffmpeg__extract_frames_for_vision` |
+| `YTDLP_OUTPUT_DIR` | ytdlp group-level output directory | `ytdlp__download_video`, `ytdlp__download_audio`, `ytdlp__download_video_subtitles` |
+| `FFMPEG_OUTPUT_DIR` | ffmpeg group-level output directory | `ffmpeg__extract_frames_for_vision` |
 
-#### runprompt 生成类
+#### runprompt Generation
 
-| 环境变量 | 作用 | 兼容回退 |
+| Env Var | Purpose | Fallback |
 | --- | --- | --- |
-| `RUNPROMPT_MODEL` | LLM 模型名 | `MODEL` |
+| `RUNPROMPT_MODEL` | LLM model name | `MODEL` |
 | `RUNPROMPT_BASE_URL` | API Base URL | `OPENAI_BASE_URL`, `OPENAI_API_BASE`, `BASE_URL` |
 | `RUNPROMPT_OPENROUTER_API_KEY` | API Key | `OPENROUTER_API_KEY`, `API_KEY` |
-| `RUNPROMPT_DEBUG_PROMPT` | 打印完整渲染提示词并启用 verbose 调试 | 无 |
-| `SHELL_AS_MCP_RUNPROMPT_DIAGNOSTIC` | 输出 runprompt 启动诊断信息 | 无 |
-| `SHELL_AS_MCP_RUNPROMPT_TIMEOUT_SEC` | runprompt Python 层超时秒数 | `120` |
-| `SHELL_AS_MCP_RUNPROMPT_TOOL_ROOT` | runprompt 文件工具根目录 | 通常无需手动设置 |
+| `RUNPROMPT_DEBUG_PROMPT` | Print the full rendered prompt and enable verbose debug before the request | — |
+| `SHELL_AS_MCP_RUNPROMPT_DIAGNOSTIC` | Output runprompt startup diagnostics | — |
+| `SHELL_AS_MCP_RUNPROMPT_TIMEOUT_SEC` | Timeout in seconds for the runprompt Python layer | `120` |
+| `SHELL_AS_MCP_RUNPROMPT_TOOL_ROOT` | Root directory for runprompt file tools | Rarely needs manual configuration |
 
-#### 网络代理类
+#### Network Proxy
 
-| 环境变量 | 作用 |
+| Env Var | Purpose |
 | --- | --- |
-| `https_proxy` | 小写 HTTPS 代理环境变量 |
-| `HTTPS_PROXY` | 大写 HTTPS 代理环境变量 |
+| `https_proxy` | Lowercase HTTPS proxy env var |
+| `HTTPS_PROXY` | Uppercase HTTPS proxy env var |
 
-一句话说完：如果你只是正常跑 server，通常只需要 `SHELL_AS_MCP_SPEC_DIR`；如果你要落地文件输出，再加 `SHELL_AS_MCP_OUTPUT_DIR` 或组级目录变量；如果你要用 `runprompt__generate_artifact`，再补齐 `RUNPROMPT_*`。
+In short: if you just run the server normally, you typically only need `SHELL_AS_MCP_SPEC_DIR`; if you need file output, also add `SHELL_AS_MCP_OUTPUT_DIR` or the group-level directory vars; if you use `runprompt__generate_artifact`, also supply the `RUNPROMPT_*` vars.
 
-**`runprompt__generate_artifact` 环境变量（⚠️ 自动生成功能开发中）：**
+**`runprompt__generate_artifact` environment variables (⚠️ auto-generation is WIP):**
 
-| 变量 | 说明 | 兼容回退 |
+| Var | Description | Fallback |
 | --- | --- | --- |
-| `RUNPROMPT_MODEL` | LLM 模型名 | `MODEL` |
+| `RUNPROMPT_MODEL` | LLM model name | `MODEL` |
 | `RUNPROMPT_BASE_URL` | API Base URL | `OPENAI_BASE_URL`, `OPENAI_API_BASE`, `BASE_URL` |
 | `RUNPROMPT_OPENROUTER_API_KEY` | API Key | `OPENROUTER_API_KEY`, `API_KEY` |
 
-调试提示词：设置 `RUNPROMPT_DEBUG_PROMPT=1` 可在请求前打印完整渲染提示词并启用 `runprompt -v`。
+Debug tip: set `RUNPROMPT_DEBUG_PROMPT=1` to print the full rendered prompt before the request and enable `runprompt -v`.
 
 ---
 
-## 6) 测试 & Lint
+## 6) Testing & Lint
 
 ```bash
-# 单元测试
+# Unit tests
 npm test
 
-# 运行 smoke tests（generic + current-target）
+# Run smoke tests (generic + current-target)
 bash scripts/run_smoke_tests.sh
 
-# 一键执行 build + pack + 严格协议握手冒烟
+# Build + pack + strict protocol handshake smoke in one command
 make regress-pack-smoke
 
-# Lint（YAML 规范 + shellcheck + prompt 格式，全量扫描 shell_as_mcp_defs/）
+# Lint (YAML spec + shellcheck + prompt format; full scan of shell_as_mcp_defs/)
 bash scripts/lint/lint_all.sh
 ```
 
-`lint_all.sh` 分四类自动发现并校验：
+`lint_all.sh` auto-discovers and validates four categories:
 
-- `spec_yaml/*.yaml` → `validate_shell_as_mcp_yaml.sh`（结构/字段/禁止模式）
-- `scripts/*.sh` → `validate_script.sh`（shellcheck）
-- `prompts/*.prompt`（非 `_` 开头） → `validate_runprompt_prompt.sh`（frontmatter/schema）
-- `spec_yaml/*.yaml`（含 `support: tested`）→ `validate_tested_has_smoke_test.sh`（校验对应 per-target smoke test 是否存在）
+- `spec_yaml/*.yaml` → `validate_shell_as_mcp_yaml.sh` (structure/fields/forbidden patterns)
+- `scripts/*.sh` → `validate_script.sh` (shellcheck)
+- `prompts/*.prompt` (not starting with `_`) → `validate_runprompt_prompt.sh` (frontmatter/schema)
+- `spec_yaml/*.yaml` (containing `support: tested`) → `validate_tested_has_smoke_test.sh` (verifies the corresponding per-target smoke test exists)
 
-`run_smoke_tests.sh` 会先跑各 bundle 通用 smoke test（`*__smoke_test.sh`），再自动发现并执行当前平台匹配的 per-target smoke test（如 `*__smoke_test__darwin_arm64.sh`）。
+`run_smoke_tests.sh` first runs each bundle's generic smoke test (`*__smoke_test.sh`), then auto-discovers and runs the per-target smoke test matching the current platform (e.g. `*__smoke_test__darwin_arm64.sh`).
 
-`make regress-pack-smoke` 会执行 build、npm pack、以 tarball 启动 streamable-http 服务，并按严格握手顺序校验 `initialize`、`notifications/initialized`、`tools/list`。
+`make regress-pack-smoke` runs build, npm pack, starts the server in streamable-http mode from the tarball, and validates the strict handshake sequence: `initialize`, `notifications/initialized`, `tools/list`.
 
-单文件校验：
+Single-file validation:
 
 ```bash
 bash scripts/lint/validate_shell_as_mcp_yaml.sh shell_as_mcp_defs/brew/spec_yaml/brew__info.yaml
 bash scripts/lint/validate_script.sh shell_as_mcp_defs/brew/scripts/brew__info.sh
 bash scripts/lint/validate_tested_has_smoke_test.sh shell_as_mcp_defs/brew/spec_yaml/brew__info.yaml
 ```
+
+### 6.1 Make Shortcuts
+
+```bash
+make build    # clean + compile TypeScript + copy runtime assets
+make test     # equivalent to npm test (unit + e2e)
+make lint     # equivalent to bash scripts/lint/lint_all.sh
+make deps     # npm ci to install dependencies
+make help     # show all available make targets
+```
+
+### 6.2 Docker
+
+```bash
+# Build image
+make docker-build
+
+# Run container (stdio mode)
+make docker-run
+
+# Enter container shell for debugging
+make docker-shell
+```
+
+---
+
+## Acknowledgements
+
+This project builds on top of the following excellent open-source projects:
+
+- [**@modelcontextprotocol/sdk**](https://github.com/modelcontextprotocol/typescript-sdk) — TypeScript MCP SDK providing standardized MCP server protocol implementation
+- [**runprompt**](https://github.com/chr15m/runprompt) — CLI LLM prompt runner powering the `runprompt__generate_artifact` bundle
+- [**dotprompt**](https://github.com/google/dotprompt) — Google's structured prompt format specification, influencing this project's prompt template design
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.

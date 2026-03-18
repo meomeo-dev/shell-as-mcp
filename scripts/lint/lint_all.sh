@@ -13,6 +13,7 @@ MCD_BASE="$REPO_ROOT/shell_as_mcp_defs"
 VALIDATE_YAML="$SCRIPT_DIR/validate_shell_as_mcp_yaml.sh"
 VALIDATE_PROMPT="$SCRIPT_DIR/validate_runprompt_prompt.sh"
 VALIDATE_SCRIPT="$SCRIPT_DIR/validate_script.sh"
+VALIDATE_SKILL="$SCRIPT_DIR/validate_skill_md.sh"
 
 total=0
 passed=0
@@ -71,6 +72,22 @@ echo ""
 echo "=== tested→smoke_test enforcement ==="
 VALIDATE_TESTED_SMOKE="$SCRIPT_DIR/validate_tested_has_smoke_test.sh"
 run_check "$VALIDATE_TESTED_SMOKE" "${yaml_files[@]+"${yaml_files[@]}"}"
+echo ""
+
+# ── SKILL.md checks ───────────────────────────────────────────────────────
+echo "=== SKILL.md checks ==="
+skill_files=()
+while IFS= read -r -d '' f; do
+  skill_files+=("$f")
+done < <(find "$REPO_ROOT" -name "SKILL.md" \
+  -not -path "*/.git/*" \
+  -not -path "*/node_modules/*" \
+  -not -path "*/dist/*" \
+  -not -path "*/tmp/*" \
+  -not -path "*/.kms/*" \
+  -not -path "*/.todo_tasks/*" \
+  -print0 2>/dev/null | sort -z)
+run_check "$VALIDATE_SKILL" "${skill_files[@]+"${skill_files[@]}"}"
 echo ""
 
 # ── Summary ───────────────────────────────────────────────────────────────

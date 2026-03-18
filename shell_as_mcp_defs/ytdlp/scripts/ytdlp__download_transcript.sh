@@ -4,6 +4,10 @@ set -euo pipefail
 TOOL_URL="${TOOL_URL:?TOOL_URL is required}"
 TOOL_LANGUAGE="${TOOL_LANGUAGE:-en}"
 TOOL_COOKIES="${TOOL_COOKIES:-}"
+TOOL_OUTPUT_DIR="${TOOL_OUTPUT_DIR:-${YTDLP_OUTPUT_DIR:-}}"
+if [[ -z "$TOOL_OUTPUT_DIR" && -n "${SHELL_AS_MCP_OUTPUT_DIR:-}" ]]; then
+    TOOL_OUTPUT_DIR="${SHELL_AS_MCP_OUTPUT_DIR%/}/ytdlp"
+fi
 # shellcheck source=./_ytdlp_cookies_lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/_ytdlp_cookies_lib.sh"
 TOOL_PROXY="${TOOL_PROXY:-}"
@@ -18,7 +22,11 @@ fi
 TMPDIR_WORK="$(mktemp -d)"
 trap 'rm -rf "${TMPDIR_WORK}"; _ytdlp_cookies_cleanup' EXIT
 
-BASE_ARGS=(-vU --js-runtimes node)
+if [[ -n "$TOOL_OUTPUT_DIR" ]]; then
+    mkdir -p "$TOOL_OUTPUT_DIR"
+fi
+
+BASE_ARGS=(-v --no-update --js-runtimes node)
 [[ -n "$TOOL_COOKIES" ]] && BASE_ARGS+=(--cookies "$TOOL_COOKIES")
 [[ -n "$TOOL_PROXY"   ]] && BASE_ARGS+=(--proxy   "$TOOL_PROXY")
 
@@ -31,7 +39,7 @@ yt-dlp "${BASE_ARGS[@]}" \
 
 # VTT → 纯文本（去时间戳、去重复、去 NOTE）
 python3 - "${TMPDIR_WORK}" <<'PYEOF'
-import sys, re, glob
+import os, sys, re, glob
 
 tmpdir = sys.argv[1]
 files = glob.glob(tmpdir + '/**/*.vtt', recursive=True)
@@ -57,5 +65,14 @@ for line in content.splitlines():
 
 # 去重相邻重复行（auto-subs 特征）
 deduped = [lines[i] for i in range(len(lines)) if i == 0 or lines[i] != lines[i-1]]
+
+output_dir = os.environ.get('TOOL_OUTPUT_DIR', '').strip()
+if output_dir:
+    base_name = os.path.splitext(os.path.basename(files[0]))[0]
+    out_path = os.path.join(output_dir, f"{base_name}.txt")
+    with open(out_path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(deduped))
+    print(f"SAVED_TRANSCRIPT_PATH={out_path}", file=sys.stderr)
+
 print('\n'.join(deduped))
 PYEOF

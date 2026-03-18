@@ -73,6 +73,7 @@ execution:
 - `execution.env.fromParams` 环境变量名用 UPPER_SNAKE_CASE；与系统保留名（`PATH`、`HOME`、`USER` 等）冲突时加 `TOOL_` 前缀
 - `execution.compatibility` 是可选兼容性元数据（compatibility metadata）；若存在，`targets` 必须是非空数组，且每个 target 的 `os`、`kernel`、`arch` 都必须为非空字符串
 - `targets[].support` 可选且仅允许 `tested` 或 `declared`；`targets[].notes` 可选且必须为字符串
+- 若 target 标记为 `support: tested`，必须在同 bundle 的 `scripts/` 下提供对应 per-target smoke test：`{prefix}__smoke_test__{kernel}_{arch}.sh`（例如 `brew__smoke_test__darwin_arm64.sh`）
 - **`execution.command` 禁用**：args 中含 `&&`、`||`、`;`、`|`、`>`、`<` 等 shell 操作符时禁止使用；多步逻辑必须用 `execution.script`
 - 每个 YAML 只定义一个工具
 - `execution.env.fromRuntime` 支持字符串数组，按从左到右优先级短路匹配；适合表达组级默认值到全局默认值的 fallback
@@ -83,6 +84,7 @@ execution:
 
 - 推荐把每个 target 当作一个完整元组（tuple）来声明，避免把 `os`、`kernel`、`arch` 拆成独立列表后产生错误的笛卡尔积（cartesian product）含义。
 - `support: tested` 表示该目标有实际验证证据；省略或 `declared` 表示声明可运行，但当前仓库未把它当作运行时拦截条件。
+- `support: tested` 的证据载体为 per-target smoke test 脚本：`{prefix}__smoke_test__{kernel}_{arch}.sh`；lint 会进行存在性校验。
 - 当前 loader 与 lint 会校验字段结构，但服务启动与工具暴露逻辑不会因为该字段而做平台过滤（platform filtering）。
 
 ### 1.2 healthz 契约（Health Check Contract）
@@ -269,7 +271,7 @@ pip install "git+https://github.com/chr15m/runprompt.git"
 | 参数 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `--transport` | `SHELL_AS_MCP_TRANSPORT` | `stdio` | `stdio` 或 `streamable-http` |
-| `--spec-dir` | `SHELL_AS_MCP_SPEC_DIR` | `./specs` | YAML spec 目录 |
+| `--spec-dir` | `SHELL_AS_MCP_SPEC_DIR` | `./shell_as_mcp_defs` | YAML spec 目录（overlay） |
 | `--host` | `SHELL_AS_MCP_HTTP_HOST` | `127.0.0.1` | HTTP 监听地址 |
 | `--port` | `SHELL_AS_MCP_HTTP_PORT` | `3001` | HTTP 监听端口 |
 | `--http-path` | `SHELL_AS_MCP_HTTP_PATH` | `/mcp` | HTTP 路径 |
@@ -393,19 +395,31 @@ pip install "git+https://github.com/chr15m/runprompt.git"
 # 单元测试
 npm test
 
+# 运行 smoke tests（generic + current-target）
+bash scripts/run_smoke_tests.sh
+
+# 一键执行 build + pack + 严格协议握手冒烟
+make regress-pack-smoke
+
 # Lint（YAML 规范 + shellcheck + prompt 格式，全量扫描 shell_as_mcp_defs/）
 bash scripts/lint/lint_all.sh
 ```
 
-`lint_all.sh` 分三类自动发现并校验：
+`lint_all.sh` 分四类自动发现并校验：
 
 - `spec_yaml/*.yaml` → `validate_shell_as_mcp_yaml.sh`（结构/字段/禁止模式）
 - `scripts/*.sh` → `validate_script.sh`（shellcheck）
 - `prompts/*.prompt`（非 `_` 开头） → `validate_runprompt_prompt.sh`（frontmatter/schema）
+- `spec_yaml/*.yaml`（含 `support: tested`）→ `validate_tested_has_smoke_test.sh`（校验对应 per-target smoke test 是否存在）
+
+`run_smoke_tests.sh` 会先跑各 bundle 通用 smoke test（`*__smoke_test.sh`），再自动发现并执行当前平台匹配的 per-target smoke test（如 `*__smoke_test__darwin_arm64.sh`）。
+
+`make regress-pack-smoke` 会执行 build、npm pack、以 tarball 启动 streamable-http 服务，并按严格握手顺序校验 `initialize`、`notifications/initialized`、`tools/list`。
 
 单文件校验：
 
 ```bash
 bash scripts/lint/validate_shell_as_mcp_yaml.sh shell_as_mcp_defs/brew/spec_yaml/brew__info.yaml
 bash scripts/lint/validate_script.sh shell_as_mcp_defs/brew/scripts/brew__info.sh
+bash scripts/lint/validate_tested_has_smoke_test.sh shell_as_mcp_defs/brew/spec_yaml/brew__info.yaml
 ```

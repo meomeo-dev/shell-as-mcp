@@ -67,6 +67,12 @@ done < <(find "$MCD_BASE" -path "*/prompts/*.prompt" -print0 2>/dev/null | sort 
 run_check "$VALIDATE_PROMPT" "${prompt_files[@]+"${prompt_files[@]}"}"
 echo ""
 
+# ── tested targets must have smoke_test.sh ────────────────────────────────
+echo "=== tested→smoke_test enforcement ==="
+VALIDATE_TESTED_SMOKE="$SCRIPT_DIR/validate_tested_has_smoke_test.sh"
+run_check "$VALIDATE_TESTED_SMOKE" "${yaml_files[@]+"${yaml_files[@]}"}"
+echo ""
+
 # ── Summary ───────────────────────────────────────────────────────────────
 echo "=== Summary: $total files checked, $passed passed, $failed failed ==="
 

@@ -30,7 +30,7 @@ fi
 
 FETCH_N=$(( TOOL_MAX_RESULTS + TOOL_OFFSET ))
 
-BASE_ARGS=(-vU --js-runtimes node)
+BASE_ARGS=(-v --no-update --js-runtimes node)
 [[ -n "$TOOL_COOKIES" ]] && BASE_ARGS+=(--cookies "$TOOL_COOKIES")
 [[ -n "$TOOL_PROXY"   ]] && BASE_ARGS+=(--proxy   "$TOOL_PROXY")
 

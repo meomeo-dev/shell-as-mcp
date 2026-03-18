@@ -1,4 +1,4 @@
-.PHONY: help deps build run test clean lint docker-build docker-run docker-shell
+.PHONY: help deps build run test clean lint regress-pack-smoke docker-build docker-run docker-shell
 
 IMAGE_NAME=shell-as-mcp
 VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -25,6 +25,9 @@ clean: ## Remove build artifacts
 
 lint: ## Run all static spec validators
 	bash scripts/lint/lint_all.sh
+
+regress-pack-smoke: ## Build + pack + strict streamable-http handshake smoke test
+	bash scripts/regress_pack_smoke.sh
 
 docker-build: ## Build Docker image
 	docker build -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):latest .

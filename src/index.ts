@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { createServer, IncomingMessage } from "node:http";
 import { readFile } from "node:fs/promises";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -134,8 +135,11 @@ async function main(): Promise<void> {
   }
 
   const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
+    sessionIdGenerator: () => randomUUID(),
   });
+  transport.onerror = (error: Error) => {
+    process.stderr.write(`[streamable-http] ${error.message}\n`);
+  };
   await server.connect(transport);
 
   const httpServer = createServer(async (req, res) => {

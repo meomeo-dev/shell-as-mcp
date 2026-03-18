@@ -12,3 +12,9 @@ Required format:
 7. Exit with non-zero code on unrecoverable errors and print errors to stderr.
 8. Avoid destructive operations unless the requirement explicitly demands them.
 9. **In shell-as-mcp-bundle context: receive ALL input parameters via environment variables** (UPPER_SNAKE_CASE), as mapped by the companion YAML's `execution.env.fromParams`. Do NOT rely on positional `$1`, `$2` arguments. Example: if YAML maps `TOOL_PATH: path`, the script reads `TARGET="${TOOL_PATH:?TOOL_PATH is required}"`. Apply `:?` or `:=` expansions to enforce presence or provide defaults.
+10. For smoke test artifacts, naming MUST follow:
+	- Generic bundle smoke test: `{prefix}__smoke_test.sh`
+	- Per-target smoke test: `{prefix}__smoke_test__{kernel}_{arch}.sh`
+11. If the script is per-target smoke test, it SHOULD self-check `uname` (`kernel/arch`) and return `SKIP:` with exit 0 when current host does not match the target.
+12. Smoke tests SHOULD avoid network and destructive side effects. Prefer local dependency probes and lightweight execution checks.
+13. On successful smoke test execution, output SHOULD be a single-line JSON payload for stable CI parsing.

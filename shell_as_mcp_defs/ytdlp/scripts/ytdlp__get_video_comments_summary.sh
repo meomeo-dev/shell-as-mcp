@@ -22,7 +22,7 @@ if (( TOOL_MAX_COMMENTS > 50 )); then
   TOOL_MAX_COMMENTS=50
 fi
 
-BASE_ARGS=(-vU --js-runtimes node)
+BASE_ARGS=(-v --no-update --js-runtimes node)
 [[ -n "$TOOL_COOKIES" ]] && BASE_ARGS+=(--cookies "$TOOL_COOKIES")
 [[ -n "$TOOL_PROXY"   ]] && BASE_ARGS+=(--proxy   "$TOOL_PROXY")
 

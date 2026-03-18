@@ -16,7 +16,7 @@ if [[ ! "$TOOL_URL" =~ ^https?:// ]]; then
 fi
 
 # 构建命令参数数组
-BASE_ARGS=(-vU --js-runtimes node)
+BASE_ARGS=(-v --no-update --js-runtimes node)
 [[ -n "$TOOL_COOKIES" ]] && BASE_ARGS+=(--cookies "$TOOL_COOKIES")
 [[ -n "$TOOL_PROXY"   ]] && BASE_ARGS+=(--proxy   "$TOOL_PROXY")
 

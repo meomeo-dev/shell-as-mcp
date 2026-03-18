@@ -679,3 +679,13 @@ Answer user queries accurately and concisely.
 - **MUST** 确保所有 Handlebars block helper 正确关闭（`{{/if}}`、`{{/each}}`、`{{/role}}` 等）
 - **MUST** 确保 `output.schema` 中声明的字段与模板 body 指令一致（有 `output.format: json` 时）
 - **SHOULD** 在 `input.schema` 中声明所有模板使用的变量
+
+---
+
+## 10. 跨规范一致性（Cross-Spec Consistency for shell-as-mcp）
+
+当该 `.prompt` 用于生成 shell-as-mcp bundle（含 YAML + 脚本）时，提示词内容应与 type-specs 保持一致：
+
+- 若 YAML 中存在 `execution.compatibility.targets[*].support: tested`，提示词 **MUST** 要求生成对应的 per-target smoke test 脚本：`{prefix}__smoke_test__{kernel}_{arch}.sh`。
+- 提示词 **SHOULD** 同时要求存在 generic smoke test 锚点：`{prefix}__smoke_test.sh`，以便 lint 推导 `{prefix}`。
+- 提示词 **SHOULD** 要求 smoke tests 可由 `bash scripts/run_smoke_tests.sh` 统一执行，并保持无网络、低副作用（low side-effect）。

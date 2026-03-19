@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Run Safe Command Pre-Execution Authorization</title>
+    <link rel="stylesheet" href="./widget.css" />
+  </head>
+  <body>
+    <main class="auth-shell" aria-live="polite">
+      <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <header class="auth-header">
+          <p class="risk-pill" id="risk-pill">Risk: HIGH</p>
+          <h1 id="auth-title">Authorize Risky Command Execution</h1>
+          <p id="countdown" class="countdown">Expires in --s</p>
+        </header>
+
+        <article class="auth-body">
+          <dl class="command-grid">
+            <dt>Command</dt>
+            <dd id="field-command">--</dd>
+            <dt>Args</dt>
+            <dd id="field-args">--</dd>
+            <dt>Working Dir</dt>
+            <dd id="field-working-dir">--</dd>
+            <dt>Context Digest</dt>
+            <dd id="field-digest">--</dd>
+          </dl>
+          <p id="auth-message" class="auth-message"></p>
+        </article>
+
+        <footer class="auth-footer">
+          <button type="button" id="deny-btn" class="btn btn-secondary">Deny</button>
+          <button type="button" id="approve-btn" class="btn btn-primary">Authorize</button>
+        </footer>
+      </section>
+    </main>
+    <script src="./widget.js"></script>
+  </body>
+</html>

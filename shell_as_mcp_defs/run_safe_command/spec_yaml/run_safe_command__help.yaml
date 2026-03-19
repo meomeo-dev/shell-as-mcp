@@ -1,0 +1,85 @@
+apiVersion: v1
+tool:
+  name: run_safe_command__help
+  description: |-
+    /**
+     * Show usage and safety model for run_safe_command tools.
+     * @param topic Optional topic filter: execute, audit, healthz, security.
+     */
+  input:
+    properties:
+      topic:
+        type: string
+        description: Optional topic filter.
+    required: []
+  output:
+    type: object
+    description: Topic-aware help payload for run_safe_command bundle.
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+    oneOf:
+      - type: object
+        properties:
+          bundle: { type: string }
+          topics:
+            type: object
+            additionalProperties: true
+        required: [bundle, topics]
+        additionalProperties: true
+      - type: object
+        properties:
+          bundle: { type: string }
+          topic: { type: string }
+          content:
+            type: object
+            additionalProperties: true
+        required: [bundle, topic, content]
+        additionalProperties: true
+      - type: object
+        properties:
+          bundle: { type: string }
+          topic: { type: string }
+          error: { type: string }
+          supported_topics:
+            type: array
+            items: { type: string }
+        required: [bundle, topic, error, supported_topics]
+        additionalProperties: true
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    fromParams:
+      TOOL_TOPIC: topic
+  timeoutMs: 10000
+  maxOutputBytes: 262144
+  script:
+    path: ./scripts/run_safe_command__help.sh
+    interpreter: bash

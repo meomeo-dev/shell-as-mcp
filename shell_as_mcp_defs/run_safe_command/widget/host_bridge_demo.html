@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>run_safe_command Host Bridge Demo</title>
+    <style>
+      :root {
+        --bg: #f1efe8;
+        --panel: #fffaf1;
+        --ink: #2d241d;
+        --muted: #7a6a5f;
+        --accent: #0a6c5a;
+        --danger: #b44734;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "IBM Plex Sans", "Helvetica Neue", sans-serif;
+        background:
+          radial-gradient(circle at 10% 15%, #ffd8a8 0, transparent 35%),
+          radial-gradient(circle at 90% 85%, #d8f1e2 0, transparent 40%),
+          var(--bg);
+      }
+
+      .layout {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: minmax(320px, 460px) 1fr;
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border-radius: 16px;
+        border: 1px solid rgba(10, 108, 90, 0.2);
+        box-shadow: 0 10px 28px rgba(45, 36, 29, 0.16);
+        padding: 16px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        font-size: 1.2rem;
+      }
+
+      .muted {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .actions {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        min-height: 40px;
+        padding: 0 12px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .primary {
+        background: linear-gradient(130deg, #0a6c5a, #1f8875);
+        color: #fff;
+      }
+
+      .secondary {
+        background: #f7efe3;
+        color: var(--ink);
+        border: 1px solid #d3c1af;
+      }
+
+      .danger {
+        background: #fbe8e3;
+        color: var(--danger);
+        border: 1px solid #e5b5a9;
+      }
+
+      .log {
+        margin-top: 14px;
+        background: #111;
+        color: #d7f4e8;
+        min-height: 220px;
+        border-radius: 12px;
+        padding: 10px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-family: ui-monospace, Menlo, Monaco, "Cascadia Mono", monospace;
+        font-size: 12px;
+      }
+
+      iframe {
+        width: 100%;
+        min-height: calc(100vh - 32px);
+        border: 0;
+        border-radius: 16px;
+        box-shadow: 0 10px 28px rgba(45, 36, 29, 0.16);
+        background: #fff;
+      }
+
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        iframe {
+          min-height: 70vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="layout">
+      <section class="panel">
+        <h1>Host Bridge Demo</h1>
+        <p class="muted">
+          This page simulates a host app. It injects <code>runSafeCommandExecute</code> into the widget and
+          calls <code>runSafeCommandAuthWidget.setRequest(...)</code>.
+        </p>
+
+        <div class="actions">
+          <div class="row">
+            <button id="inject-btn" class="secondary" type="button">1) Inject Bridge</button>
+            <button id="request-btn" class="primary" type="button">2) Send Request</button>
+          </div>
+          <div class="row">
+            <button id="reset-btn" class="danger" type="button">Reset Widget</button>
+          </div>
+        </div>
+
+        <pre id="log" class="log">[demo] waiting...</pre>
+      </section>
+
+      <section>
+        <iframe id="widget-frame" title="run_safe_command widget" src="./index.html"></iframe>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        const frame = document.getElementById("widget-frame");
+        const logEl = document.getElementById("log");
+        const injectBtn = document.getElementById("inject-btn");
+        const requestBtn = document.getElementById("request-btn");
+        const resetBtn = document.getElementById("reset-btn");
+
+        function appendLog(message, data) {
+          const ts = new Date().toISOString();
+          const line = "[" + ts + "] " + message;
+          const payload = data ? "\n" + JSON.stringify(data, null, 2) : "";
+          logEl.textContent += "\n" + line + payload;
+          logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function widgetWindow() {
+          return frame.contentWindow;
+        }
+
+        function injectBridge() {
+          const win = widgetWindow();
+          if (!win) {
+            appendLog("[error] widget frame not ready");
+            return;
+          }
+
+          win.runSafeCommandExecute = async function (payload) {
+            appendLog("bridge called: runSafeCommandExecute(payload)", payload);
+            await new Promise(function (resolve) {
+              setTimeout(resolve, 350);
+            });
+            return {
+              ok: true,
+              taskId: "demo-task-" + Date.now(),
+              structuredContent: {
+                accepted: true,
+                source: "host-bridge-demo",
+              },
+            };
+          };
+
+          appendLog("bridge injected into iframe window");
+        }
+
+        function sendRequest() {
+          const win = widgetWindow();
+          if (!win || !win.runSafeCommandAuthWidget || typeof win.runSafeCommandAuthWidget.setRequest !== "function") {
+            appendLog("[error] widget API not ready. Wait iframe load and click Inject Bridge first.");
+            return;
+          }
+
+          const expiresInMs = 30000;
+          const request = {
+            request_id: "demo-request-" + Date.now(),
+            command: "echo",
+            args: ["hello-host-bridge"],
+            working_dir: "/Users/luojin/git/github/mcp-shell",
+            context_digest: "demo-context-digest-host-bridge",
+            expires_at_ms: Date.now() + expiresInMs,
+          };
+          win.runSafeCommandAuthWidget.setRequest(request);
+          appendLog("request pushed to widget", request);
+        }
+
+        function resetWidget() {
+          frame.src = "./index.html";
+          appendLog("widget frame reset");
+        }
+
+        frame.addEventListener("load", function () {
+          appendLog("widget iframe loaded");
+        });
+
+        injectBtn.addEventListener("click", injectBridge);
+        requestBtn.addEventListener("click", sendRequest);
+        resetBtn.addEventListener("click", resetWidget);
+      })();
+    </script>
+  </body>
+</html>

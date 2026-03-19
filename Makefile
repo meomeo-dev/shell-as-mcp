@@ -17,8 +17,9 @@ build: clean ## Build TypeScript project (clean + compile TS + copy runtime asse
 run: ## Run MCP server from built output
 	npm start
 
-test: ## Run TypeScript tests
+test: ## Run TypeScript tests + run_safe_command contract smoke
 	npm test
+	bash shell_as_mcp_defs/run_safe_command/scripts/run_safe_command__smoke_test.sh
 
 clean: ## Remove build artifacts
 	rm -rf dist

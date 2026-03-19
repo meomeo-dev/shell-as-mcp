@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { buildExecutionPlan } from "../src/executor.js";
-import { loadSpecs } from "../src/spec-loader.js";
+import { loadSpecs, loadSpecsWithOptions } from "../src/spec-loader.js";
 import { normalizeTSDocDescription } from "../src/tsdoc.js";
 import type { ShellToolSpec } from "../src/types.js";
 
@@ -418,9 +418,120 @@ execution:
     "utf8",
   );
 
-  const specs = await loadSpecs(dir);
+  const specs = await loadSpecsWithOptions(dir, {
+    runtime: {
+      os: "macos",
+      kernel: "darwin",
+      arch: "arm64",
+    },
+  });
   assert.equal(specs[0]?.execution.compatibility?.targets[0]?.kernel, "darwin");
   assert.equal(specs[0]?.execution.compatibility?.targets[0]?.support, "tested");
+});
+
+test("filters out specs with non-matching compatibility targets", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "shell-as-mcp-spec-"));
+  await mkdir(path.join(dir, "testserver", "spec_yaml"), { recursive: true });
+
+  await writeFile(
+    path.join(dir, "testserver", "spec_yaml", "linux-only.yaml"),
+    `apiVersion: v1
+tool:
+  name: linux_only_tool
+  description: |
+    /**
+     * Linux only.
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  compatibility:
+    targets:
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: tested
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  const specs = await loadSpecsWithOptions(dir, {
+    runtime: {
+      os: "macos",
+      kernel: "darwin",
+      arch: "arm64",
+    },
+  });
+
+  assert.equal(specs.length, 0);
+});
+
+test("keeps specs without compatibility while filtering mismatched ones", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "shell-as-mcp-spec-"));
+  await mkdir(path.join(dir, "testserver", "spec_yaml"), { recursive: true });
+
+  await writeFile(
+    path.join(dir, "testserver", "spec_yaml", "no-compat.yaml"),
+    `apiVersion: v1
+tool:
+  name: no_compat_tool
+  description: |
+    /**
+     * No compatibility metadata.
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  await writeFile(
+    path.join(dir, "testserver", "spec_yaml", "darwin-only.yaml"),
+    `apiVersion: v1
+tool:
+  name: darwin_only_tool
+  description: |
+    /**
+     * Darwin only.
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  const specs = await loadSpecsWithOptions(dir, {
+    runtime: {
+      os: "linux",
+      kernel: "linux",
+      arch: "x86_64",
+    },
+  });
+  const names = new Set(specs.map((spec) => spec.tool.name));
+  assert.deepEqual(Array.from(names), ["no_compat_tool"]);
 });
 
 test("rejects yaml specs with compatibility targets missing kernel", async () => {

@@ -2,7 +2,17 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
 import { normalizeTSDocDescription } from "./tsdoc.js";
-import type { ShellToolSpec } from "./types.js";
+import type { CompatibilityTarget, ShellToolSpec } from "./types.js";
+
+export interface RuntimeEnvironment {
+  os: string;
+  kernel: string;
+  arch: string;
+}
+
+export interface LoadSpecsOptions {
+  runtime?: RuntimeEnvironment;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -10,6 +20,70 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
+}
+
+function normalizeOs(value: string): string {
+  const lowered = value.toLowerCase();
+  if (lowered === "darwin" || lowered === "mac" || lowered === "macos") {
+    return "macos";
+  }
+  if (lowered === "win32" || lowered === "windows") {
+    return "windows";
+  }
+  return lowered;
+}
+
+function normalizeKernel(value: string): string {
+  const lowered = value.toLowerCase();
+  if (lowered === "win32" || lowered === "windows" || lowered === "windows_nt") {
+    return "nt";
+  }
+  return lowered;
+}
+
+function normalizeArch(value: string): string {
+  const lowered = value.toLowerCase();
+  if (lowered === "x64" || lowered === "amd64" || lowered === "x86-64") {
+    return "x86_64";
+  }
+  if (lowered === "aarch64") {
+    return "arm64";
+  }
+  return lowered;
+}
+
+function resolveRuntimeEnvironment(runtime?: RuntimeEnvironment): RuntimeEnvironment {
+  if (runtime) {
+    return {
+      os: normalizeOs(runtime.os),
+      kernel: normalizeKernel(runtime.kernel),
+      arch: normalizeArch(runtime.arch),
+    };
+  }
+
+  const platform = process.platform;
+  const kernel = platform === "win32" ? "nt" : platform;
+  return {
+    os: normalizeOs(platform),
+    kernel: normalizeKernel(kernel),
+    arch: normalizeArch(process.arch),
+  };
+}
+
+function isTargetMatchingRuntime(target: CompatibilityTarget, runtime: RuntimeEnvironment): boolean {
+  return (
+    normalizeOs(target.os) === runtime.os &&
+    normalizeKernel(target.kernel) === runtime.kernel &&
+    normalizeArch(target.arch) === runtime.arch
+  );
+}
+
+function shouldLoadSpecForRuntime(spec: ShellToolSpec, runtime: RuntimeEnvironment): boolean {
+  const targets = spec.execution.compatibility?.targets;
+  if (!targets || targets.length === 0) {
+    return true;
+  }
+  return targets.some((target) => isTargetMatchingRuntime(target, runtime));
 }
 
 function assertSpec(spec: unknown, filePath: string): asserts spec is ShellToolSpec {
@@ -161,7 +235,7 @@ function assertSpec(spec: unknown, filePath: string): asserts spec is ShellToolS
   }
 }
 
-async function loadSpecsFromDir(specDir: string): Promise<ShellToolSpec[]> {
+async function loadSpecsFromDir(specDir: string, runtime: RuntimeEnvironment): Promise<ShellToolSpec[]> {
   // Hierarchical structure: <specDir>/<serverName>/spec_yaml/*.yaml
   // __meta.specDir is set to the server directory (not spec_yaml/) so that
   // relative script paths like ./scripts/foo.sh resolve correctly.
@@ -189,6 +263,9 @@ async function loadSpecsFromDir(specDir: string): Promise<ShellToolSpec[]> {
       const raw = await readFile(filePath, "utf8");
       const parsed = parse(raw);
       assertSpec(parsed, filePath);
+      if (!shouldLoadSpecForRuntime(parsed, runtime)) {
+        continue;
+      }
       // specDir points to server root, not spec_yaml subdir
       parsed.__meta = { specDir: serverPath };
       specs.push(parsed);
@@ -204,10 +281,18 @@ async function loadSpecsFromDir(specDir: string): Promise<ShellToolSpec[]> {
  * for tools with the same name (user-defined tools take precedence over built-ins).
  */
 export async function loadSpecs(specDirs: string | string[]): Promise<ShellToolSpec[]> {
+  return loadSpecsWithOptions(specDirs, {});
+}
+
+export async function loadSpecsWithOptions(
+  specDirs: string | string[],
+  options: LoadSpecsOptions,
+): Promise<ShellToolSpec[]> {
   const dirs = Array.isArray(specDirs) ? specDirs : [specDirs];
+  const runtime = resolveRuntimeEnvironment(options.runtime);
   const merged = new Map<string, ShellToolSpec>();
   for (const dir of dirs) {
-    const dirSpecs = await loadSpecsFromDir(dir);
+    const dirSpecs = await loadSpecsFromDir(dir, runtime);
     for (const spec of dirSpecs) {
       merged.set(spec.tool.name, spec);
     }

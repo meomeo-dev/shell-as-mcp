@@ -1,0 +1,50 @@
+apiVersion: v1
+tool:
+  name: run_safe_command__healthz
+  description: |-
+    /**
+     * Check run_safe_command runtime dependencies and platform capabilities.
+     * @remarks Missing optional trace tools (for example strace on macOS) are reported as warnings, not hard failures.
+     */
+  input:
+    properties: {}
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  timeoutMs: 10000
+  maxOutputBytes: 262144
+  script:
+    path: ./scripts/run_safe_command__healthz.sh
+    interpreter: bash

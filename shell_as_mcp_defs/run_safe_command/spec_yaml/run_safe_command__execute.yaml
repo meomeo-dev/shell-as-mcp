@@ -1,0 +1,168 @@
+apiVersion: v1
+tool:
+  name: run_safe_command__execute
+  description: |-
+    /**
+    * Execute a command safely with structured security and audit metadata.
+    * @remarks The command is executed without shell eval in a validated working directory. Runtime control behaviors are internal-only and not caller-configurable. On darwin/arm64, pre-execution auth prefers native Swift+WKWebView and automatically falls back to OSA.
+     * @param command Executable name to run (for example: ls, cat, grep).
+     * @param args_json JSON array string of positional arguments, for example ["-la", "./src"].
+     * @param working_dir Absolute working directory where the command will run.
+     */
+  input:
+    properties:
+      command:
+        type: string
+        description: Executable name to run (no shell operators).
+      args_json:
+        type: string
+        description: JSON array string of command arguments.
+      working_dir:
+        type: string
+        description: Absolute directory used as process working directory.
+    required: [command, args_json, working_dir]
+  output:
+    type: object
+    description: Runtime returns concise (default) or full structured payload.
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+    oneOf:
+      - type: object
+        properties:
+          request:
+            type: object
+            properties:
+              request_id: { type: string }
+              command: { type: string }
+              args:
+                type: array
+                items: { type: string }
+              working_dir: { type: string }
+              resolved_working_dir: { type: string }
+            required: [command]
+            additionalProperties: true
+          execution:
+            type: object
+            properties:
+              status: { type: string }
+              exit_code: { type: number }
+              duration_ms: { type: number }
+              stdout: { type: string }
+              stderr: { type: string }
+            required: [status, exit_code]
+            additionalProperties: true
+          authorization:
+            type: object
+            properties:
+              verified: { type: boolean }
+              reason_code: { type: string }
+              source: { type: string }
+            required: [verified, reason_code, source]
+            additionalProperties: true
+          audit:
+            type: object
+            properties:
+              record_id: { type: string }
+              written: { type: boolean }
+            required: [record_id, written]
+            additionalProperties: true
+        required: [request, execution, authorization, audit]
+        additionalProperties: true
+      - type: object
+        properties:
+          request:
+            type: object
+            properties:
+              request_id: { type: string }
+              command: { type: string }
+            required: [command]
+            additionalProperties: true
+          security:
+            type: object
+            properties:
+              risky_command: { type: boolean }
+              confirm_action_satisfied: { type: boolean }
+              warnings:
+                type: array
+                items: { type: string }
+            additionalProperties: true
+          authorization:
+            type: object
+            properties:
+              mode: { type: string }
+              verified: { type: boolean }
+              reason_code: { type: string }
+              source: { type: string }
+            required: [mode, verified, reason_code, source]
+            additionalProperties: true
+          execution:
+            type: object
+            properties:
+              status: { type: string }
+              exit_code: { type: number }
+              duration_ms: { type: number }
+              stdout: { type: string }
+              stderr: { type: string }
+            required: [status, exit_code]
+            additionalProperties: true
+          trace:
+            type: object
+            additionalProperties: true
+          explanation:
+            type: object
+            additionalProperties: true
+          audit:
+            type: object
+            properties:
+              record_id: { type: string }
+              file: { type: string }
+              written: { type: boolean }
+              rotation_applied: { type: boolean }
+              rotated_files:
+                type: array
+                items: { type: string }
+            required: [record_id, file, written]
+            additionalProperties: true
+        required: [request, security, authorization, execution, trace, explanation, audit]
+        additionalProperties: true
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    fromParams:
+      TOOL_COMMAND: command
+      TOOL_ARGS_JSON: args_json
+      TOOL_WORKING_DIR: working_dir
+  taskMode: async
+  timeoutMs: 60000
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/run_safe_command__execute.sh
+    interpreter: bash

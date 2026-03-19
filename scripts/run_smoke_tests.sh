@@ -117,7 +117,7 @@ with open(sys.argv[1], 'w') as f:
 # ── Run all smoke tests ──────────────────────────────────────────────────────
 run_smoke_ass
 
-for bundle in brew ffmpeg host_info runprompt__generate_artifact shell ytdlp; do
+for bundle in brew ffmpeg host_info run_safe_command runprompt__generate_artifact shell ytdlp; do
   # runprompt bundle smoke script is named runprompt__smoke_test.sh
   if [[ "$bundle" == "runprompt__generate_artifact" ]]; then
     smoke="$MCD_BASE/$bundle/scripts/runprompt__smoke_test.sh"

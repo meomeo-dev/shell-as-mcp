@@ -1,0 +1,120 @@
+apiVersion: v1
+tool:
+  name: run_safe_command__audit_get
+  description: |-
+    /**
+     * Read recent run_safe_command execution audit records.
+     * @param limit Maximum number of most recent entries to return. Default 20.
+     */
+  input:
+    properties:
+      limit:
+        type: number
+        description: Maximum number of recent entries to return. Range 1-200.
+      include_rotated:
+        type: boolean
+        description: Include rotated audit files in addition to active file.
+      rotated_file_limit:
+        type: number
+        description: Maximum number of rotated files to scan. Range 1-50.
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+      audit_file: { type: string }
+      exists: { type: boolean }
+      include_rotated: { type: boolean }
+      files_scanned:
+        type: array
+        items: { type: string }
+      total_entries: { type: number }
+      returned_entries: { type: number }
+      parse_errors: { type: number }
+      entries:
+        type: array
+        items:
+          type: object
+          properties:
+            record_id: { type: string }
+            ts: { type: string }
+            request:
+              type: object
+              properties:
+                request_id: { type: string }
+                command: { type: string }
+                args:
+                  type: array
+                  items: { type: string }
+              required: [command]
+              additionalProperties: true
+            security:
+              type: object
+              properties:
+                risky_command: { type: boolean }
+                confirm_action_satisfied: { type: boolean }
+                warnings:
+                  type: array
+                  items: { type: string }
+              additionalProperties: true
+            authorization:
+              type: object
+              properties:
+                verified: { type: boolean }
+                reason_code: { type: string }
+                source: { type: string }
+              additionalProperties: true
+            execution:
+              type: object
+              properties:
+                status: { type: string }
+                exit_code: { type: number }
+                duration_ms: { type: number }
+              required: [status, exit_code]
+              additionalProperties: true
+            _source_file: { type: string }
+          required: [record_id, request, security, authorization, execution]
+          additionalProperties: true
+    required:
+      [audit_file, exists, include_rotated, total_entries, returned_entries, parse_errors, entries]
+    additionalProperties: true
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    fromParams:
+      TOOL_LIMIT: limit
+      TOOL_INCLUDE_ROTATED: include_rotated
+      TOOL_ROTATED_FILE_LIMIT: rotated_file_limit
+  timeoutMs: 10000
+  maxOutputBytes: 524288
+  script:
+    path: ./scripts/run_safe_command__audit_get.sh
+    interpreter: bash

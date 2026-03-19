@@ -3,13 +3,13 @@ name: shell-as-mcp
 description: Develop, test, and manage shell command bundles as standard MCP tools via YAML + Bash. Use when creating a new command bundle, adding or modifying individual tools, debugging YAML spec or script issues, running quality gates, or deploying the server.
 given-when-to:
    - given: User asks to create a new shell-as-mcp command bundle
-      when_to: Use this skill to define YAML specs, companion scripts, and validation flow
+     when_to: Use this skill to define YAML specs, companion scripts, and validation flow
    - given: User asks to add or modify tools in an existing bundle
-      when_to: Use this skill to apply naming, parameter mapping, and smoke test rules
+     when_to: Use this skill to apply naming, parameter mapping, and smoke test rules
    - given: User reports YAML spec or script execution issues
-      when_to: Use this skill to diagnose schema/script problems and run quality gates
+     when_to: Use this skill to diagnose schema/script problems and run quality gates
    - given: User asks to run release readiness checks before merge or deployment
-      when_to: Use this skill to run lint, tests, smoke checks, and build verification
+     when_to: Use this skill to run lint, tests, smoke checks, and build verification
 version: 1.0.0
 ---
 

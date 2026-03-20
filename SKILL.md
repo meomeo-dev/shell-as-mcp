@@ -190,11 +190,18 @@ Follow these steps to add a tool:
 - `shell_as_mcp_defs/ffmpeg/` — video/audio processing
 - `shell_as_mcp_defs/ytdlp/` — video download
 - `shell_as_mcp_defs/host_info/` — system context probe
+- `shell_as_mcp_defs/shell/` — base shell scripting utilities
+- `shell_as_mcp_defs/advanced_substation_alpha_ass/` — ASS subtitle format toolkit
+- `shell_as_mcp_defs/runprompt__generate_artifact/` — LLM-powered bundle auto-generation (WIP)
+- `shell_as_mcp_defs/run_safe_command/` — no-eval command execution with audit logging
 
 **Lint scripts**
 - `scripts/lint/lint_all.sh` — lint entry point
 - `scripts/lint/validate_shell_as_mcp_yaml.sh` — YAML validator
 - `scripts/lint/validate_script.sh` — Bash script validator
+- `scripts/lint/validate_runprompt_prompt.sh` — runprompt prompt frontmatter/schema validator
+- `scripts/lint/validate_skill_md.sh` — SKILL.md structure and frontmatter validator
+- `scripts/lint/validate_tested_has_smoke_test.sh` — verifies per-target smoke test exists for `support: tested` targets
 
 **Project root**
 - `README.md` — full specification walkthrough and env var reference

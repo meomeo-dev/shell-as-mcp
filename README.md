@@ -234,7 +234,7 @@ The tool's "directory output" contract remains unchanged; this only allows the d
 | `brew__healthz` | Probes whether brew bundle runtime dependencies (Homebrew) are available | — | — |
 | `brew__info` | Query formula/cask details (version, dependencies, homepage) | `package_name` | `cask` |
 | `brew__search` | Search packages | `query` | `include_casks` |
-| `brew__list_installed` | List installed packages | — | `casks_only`, `formulae_only` |
+| `brew__list_installed` | List installed packages | — | `cask_only`, `formula_only` |
 | `brew__install` | Install a formula/cask | `package_name`, `confirm_action` | `cask` |
 | `brew__uninstall` | Uninstall a formula/cask | `package_name`, `confirm_action` | `cask`, `force` |
 | `brew__upgrade` | Upgrade a formula/cask | `package_name`, `confirm_action` | `cask` |
@@ -256,9 +256,9 @@ The tool's "directory output" contract remains unchanged; this only allows the d
 | `ytdlp__list_subtitle_languages` | List available subtitle languages for a video | `url` | `cookies`, `proxy` |
 | `ytdlp__get_video_metadata` | Retrieve full video metadata as JSON | `url` | `fields`, `cookies`, `proxy` |
 | `ytdlp__get_video_metadata_summary` | Retrieve video metadata summary (title/duration/channel/etc.) | `url` | `cookies`, `proxy` |
-| `ytdlp__get_video_comments` | Retrieve comment list | `url` | `max_count`, `sort`, `cookies` |
-| `ytdlp__get_video_comments_summary` | Retrieve comment summary | `url` | `count`, `cookies`, `proxy` |
-| `ytdlp__search_videos` | Search videos | `query` | `count`, `offset`, `format` |
+| `ytdlp__get_video_comments` | Retrieve comment list | `url` | `maxComments`, `sortOrder`, `cookies`, `proxy` |
+| `ytdlp__get_video_comments_summary` | Retrieve comment summary | `url` | `maxComments`, `cookies`, `proxy` |
+| `ytdlp__search_videos` | Search videos | `query` | `maxResults`, `offset`, `response_format`, `uploadDateFilter`, `cookies`, `proxy` |
 
 ### 3.4.1 Output Directory Priority
 
@@ -292,7 +292,7 @@ Advanced SubStation Alpha (ASS) subtitle format toolkit.
 | --- | --- | --- | --- |
 | `ass__healthz` | Probes whether ASS bundle runtime dependencies (ffmpeg) are available | — | — |
 | `ass__create_template` | Creates a new ASS v4.00+ subtitle template file (with Default/Title/Note styles) | `output_path` | `title`, `play_res_x`, `play_res_y`, `overwrite` |
-| `ass__get_spec` | Returns the ASS format specification document (read-only reference tool) | — | — |
+| `ass__get_spec` | Returns the ASS format specification document (read-only reference tool) | — | `section` |
 | `ass__lint` | Validates/lints an ASS subtitle file (16 structural rules) | `ass_file_path` | `strict` |
 | `ass__smoke_test` | Renders a test video to verify ASS subtitle renderability (requires ffmpeg) | `ass_file_path`, `output_path` | `duration_sec`, `resolution`, `background_color` |
 
@@ -306,6 +306,20 @@ Advanced SubStation Alpha (ASS) subtitle format toolkit.
 | --- | --- | --- | --- |
 | `runprompt__healthz` | Probes whether runprompt bundle runtime prerequisites (python3) are available | — | — |
 | `runprompt__generate_artifact` | Uses runprompt + LLM to auto-generate a complete shell-as-mcp bundle under `SHELL_AS_MCP_SPEC_DIR` | `artifact_type`, `requirements` | `server_name`, `tool_name`, `max_repair_rounds`, `run_tests`, `run_code_review`, `run_security_review` |
+
+---
+
+### 3.8 run_safe_command
+
+> ⚠️ `run_safe_command__execute` runs the specified executable **without shell eval** in a validated working directory. On darwin/arm64, pre-execution authorization uses native Swift+WKWebView and automatically falls back to OSA. All executions are written to a structured audit log.
+
+| Tool | Description | Required Params | Optional Params |
+| --- | --- | --- | --- |
+| `run_safe_command__healthz` | Probes whether run_safe_command runtime dependencies and platform capabilities are available | — | — |
+| `run_safe_command__execute` | Executes a command without shell eval; records structured security and audit metadata | `command`, `args_json`, `working_dir` | — |
+| `run_safe_command__help` | Shows usage and safety model for the run_safe_command bundle | — | `topic` |
+| `run_safe_command__audit_get` | Reads recent execution audit records | — | `limit`, `include_rotated`, `rotated_file_limit` |
+| `run_safe_command__audit_rotate` | Rotates the audit file and enforces retention | — | `max_files` |
 
 ---
 
@@ -473,12 +487,13 @@ make regress-pack-smoke
 bash scripts/lint/lint_all.sh
 ```
 
-`lint_all.sh` auto-discovers and validates four categories:
+`lint_all.sh` auto-discovers and validates five categories:
 
 - `spec_yaml/*.yaml` → `validate_shell_as_mcp_yaml.sh` (structure/fields/forbidden patterns)
 - `scripts/*.sh` → `validate_script.sh` (shellcheck)
 - `prompts/*.prompt` (not starting with `_`) → `validate_runprompt_prompt.sh` (frontmatter/schema)
 - `spec_yaml/*.yaml` (containing `support: tested`) → `validate_tested_has_smoke_test.sh` (verifies the corresponding per-target smoke test exists)
+- `SKILL.md` → `validate_skill_md.sh` (frontmatter and structure)
 
 `run_smoke_tests.sh` first runs each bundle's generic smoke test (`*__smoke_test.sh`), then auto-discovers and runs the per-target smoke test matching the current platform (e.g. `*__smoke_test__darwin_arm64.sh`).
 

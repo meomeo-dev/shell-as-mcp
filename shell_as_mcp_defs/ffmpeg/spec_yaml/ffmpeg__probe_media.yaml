@@ -1,0 +1,66 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__probe_media
+  description: |-
+    /**
+     * Probe a media file and return full metadata as JSON using ffprobe.
+     * @remarks Returns ffprobe JSON output in stdout with streams and format information.
+     * @param input_path Source media file path (video or audio).
+     * @param stream_type Filter streams to probe: all (default), video, or audio.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source media file path (video or audio).
+      stream_type:
+        type: string
+        description: Filter streams to probe. Accepts all, video, or audio. Default all.
+    required: [input_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      STREAM_TYPE: stream_type
+  timeoutMs: 15000
+  taskMode: sync
+  maxOutputBytes: 65536
+  script:
+    path: ./scripts/ffmpeg__probe_media.sh
+    interpreter: bash

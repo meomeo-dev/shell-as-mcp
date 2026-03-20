@@ -311,12 +311,13 @@ Advanced SubStation Alpha（ASS）字幕格式工具集。
 
 ### 3.8 run_safe_command
 
-> ⚠️ `run_safe_command__execute` 以 **无 shell eval** 模式在经过验证的工作目录中执行指定可执行文件。在 darwin/arm64 系统上，执行前授权优先使用原生 Swift+WKWebView，并自动回退至 OSA。所有执行均写入结构化审计日志（audit log）。
+> ⚠️ `run_safe_command__execute` 和 `run_safe_command__pipeline` 均以 **无 shell eval** 模式执行。`execute` 在经过验证的工作目录中接受单条命令 + 参数；`pipeline` 接受 JSON 结构的多段管道阶段序列，每段通过命令许可名单（allowlist）校验。在 darwin/arm64 系统上，执行前授权优先使用原生 Swift+WKWebView，并自动回退至 OSA。所有执行均写入结构化审计日志（audit log）。
 
 | 工具 | 描述 | 必填参数 | 可选参数 |
 | --- | --- | --- | --- |
 | `run_safe_command__healthz` | 检测 run_safe_command 运行时依赖与平台能力是否可用 | — | — |
 | `run_safe_command__execute` | 以无 shell eval 模式执行命令，并记录结构化安全与审计元数据 | `command`, `args_json`, `working_dir` | — |
+| `run_safe_command__pipeline` | 以 JSON 结构的多阶段定义执行安全 shell 管道；每阶段通过命令许可名单校验（无 shell eval）；**异步（async）**——立即返回 `taskId` | `stages_json`, `working_dir` | — |
 | `run_safe_command__help` | 显示 run_safe_command bundle 的用法说明与安全模型 | — | `topic` |
 | `run_safe_command__audit_get` | 读取最近的执行审计记录 | — | `limit`, `include_rotated`, `rotated_file_limit` |
 | `run_safe_command__audit_rotate` | 轮转审计文件并执行留存策略 | — | `max_files` |

@@ -251,9 +251,32 @@ if [[ "$auth_required" == "true" ]]; then
         wkwebview_auth_script="$(cd "$(dirname "$0")" && pwd)/run_safe_command__auth_wkwebview.sh"
 
         if [[ "$current_kernel" == "darwin" && "$current_arch" == "arm64" && -x "$wkwebview_auth_script" ]]; then
+            # Build [String] args_json for Swift parseRequest(): convert stages_json ([{command,args}])
+            # into a flat string array like ["ps aux","grep nginx","wc -l"] expected by Swift binary.
+            # stages_json is passed via sys.argv[1] to avoid shell injection in the heredoc.
+            wkwebview_pipeline_meta="$(python3 - "$stages_json" <<'PYEOF'
+import json, sys
+try:
+    stages = json.loads(sys.argv[1])
+    parts = [
+        " ".join([s["command"]] + [str(a) for a in s.get("args", []) if a])
+        for s in stages if isinstance(s, dict)
+    ]
+    label = "<pipeline: " + " | ".join(
+        s["command"] for s in stages if isinstance(s, dict)
+    ) + ">"
+    print(label)
+    print(json.dumps(parts))
+except Exception:
+    print("<pipeline>")
+    print("[]")
+PYEOF
+)"
+            wkwebview_cmd_label="$(printf '%s' "$wkwebview_pipeline_meta" | head -1)"
+            wkwebview_args_summary_json="$(printf '%s' "$wkwebview_pipeline_meta" | tail -1)"
             set +e
             bash "$wkwebview_auth_script" \
-                "$request_id" "<pipeline>" "$stages_json" \
+                "$request_id" "$wkwebview_cmd_label" "$wkwebview_args_summary_json" \
                 "$resolved_working_dir" "$auth_context_digest" "$auth_expires_at_ms" \
                 >/dev/null 2>&1
             wk_prompt_exit=$?

@@ -41,6 +41,9 @@ desc = str(tool.get("description") or "")
 if "/**" not in desc or "*/" not in desc:
     errors.append("tool.description must be a TSDoc block comment (/** ... */)")
 
+if "docstring" in (tool or {}):
+    errors.append("tool.docstring is not supported; use tool.description instead")
+
 tool_input = tool.get("input")
 if not isinstance(tool_input, dict):
   errors.append("tool.input is required and must be a mapping")
@@ -61,12 +64,58 @@ if missing_out:
 execution = doc.get("execution") or {}
 has_cmd = "command" in execution
 has_script = "script" in execution
+
+env = execution.get("env") if isinstance(execution, dict) else None
+if isinstance(env, dict):
+    static = env.get("static")
+    if static is not None:
+        if not isinstance(static, dict):
+            errors.append("execution.env.static must be a mapping")
+        else:
+            for k, v in static.items():
+                if not isinstance(v, str):
+                    errors.append(f"execution.env.static.{k} must be a string")
+    from_params = env.get("fromParams")
+    if from_params is not None:
+        if not isinstance(from_params, dict):
+            errors.append("execution.env.fromParams must be a mapping")
+        else:
+            for k, v in from_params.items():
+                if not isinstance(v, str):
+                    errors.append(f"execution.env.fromParams.{k} must be a string")
+    from_runtime = env.get("fromRuntime")
+    if from_runtime is not None:
+        if not isinstance(from_runtime, dict):
+            errors.append("execution.env.fromRuntime must be a mapping")
+        else:
+            for k, v in from_runtime.items():
+                valid = (isinstance(v, str) and len(v) > 0) or \
+                        (isinstance(v, list) and len(v) > 0 and all(isinstance(e, str) and len(e) > 0 for e in v))
+                if not valid:
+                    errors.append(
+                        f"execution.env.fromRuntime.{k} must be a non-empty string or array of non-empty strings"
+                    )
+elif env is not None:
+    errors.append("execution.env must be a mapping")
+
 if has_cmd and has_script:
     errors.append(
         "execution must define exactly one of 'command' or 'script', not both"
     )
 elif not has_cmd and not has_script:
     errors.append("execution must define exactly one of 'command' or 'script'")
+
+if has_cmd:
+    cmd_block = execution.get("command") if isinstance(execution, dict) else None
+    executable = cmd_block.get("executable") if isinstance(cmd_block, dict) else None
+    if not isinstance(executable, str) or len(executable) == 0:
+        errors.append("execution.command.executable must be a non-empty string")
+
+if has_script:
+    script_block = execution.get("script") if isinstance(execution, dict) else None
+    script_path = script_block.get("path") if isinstance(script_block, dict) else None
+    if not isinstance(script_path, str) or len(script_path) == 0:
+        errors.append("execution.script.path must be a non-empty string")
 
 compatibility = execution.get("compatibility")
 if compatibility is not None:
@@ -102,6 +151,12 @@ if compatibility is not None:
           errors.append(
             f"execution.compatibility.targets[{index}].notes must be a string"
           )
+
+task_mode = execution.get("taskMode") if isinstance(execution, dict) else None
+if task_mode is not None and task_mode not in ("sync", "async"):
+    errors.append(
+        "execution.taskMode must be 'sync' or 'async' (got: " + repr(task_mode) + ")"
+    )
 
 if errors:
     for e in errors:

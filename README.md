@@ -311,12 +311,13 @@ Advanced SubStation Alpha (ASS) subtitle format toolkit.
 
 ### 3.8 run_safe_command
 
-> ⚠️ `run_safe_command__execute` runs the specified executable **without shell eval** in a validated working directory. On darwin/arm64, pre-execution authorization uses native Swift+WKWebView and automatically falls back to OSA. All executions are written to a structured audit log.
+> ⚠️ `run_safe_command__execute` and `run_safe_command__pipeline` both run **without shell eval**. `execute` accepts a single command + args in a validated working directory; `pipeline` accepts a JSON-structured sequence of pipe-connected stages, each validated against a safe command allowlist. On darwin/arm64, both use native Swift+WKWebView for pre-execution authorization and automatically fall back to OSA. All executions are written to a structured audit log.
 
 | Tool | Description | Required Params | Optional Params |
 | --- | --- | --- | --- |
 | `run_safe_command__healthz` | Probes whether run_safe_command runtime dependencies and platform capabilities are available | — | — |
 | `run_safe_command__execute` | Executes a command without shell eval; records structured security and audit metadata | `command`, `args_json`, `working_dir` | — |
+| `run_safe_command__pipeline` | Executes a safe shell pipeline from JSON-structured stage definitions; each stage is validated against a command allowlist (no shell eval); **async** — returns `taskId` immediately | `stages_json`, `working_dir` | — |
 | `run_safe_command__help` | Shows usage and safety model for the run_safe_command bundle | — | `topic` |
 | `run_safe_command__audit_get` | Reads recent execution audit records | — | `limit`, `include_rotated`, `rotated_file_limit` |
 | `run_safe_command__audit_rotate` | Rotates the audit file and enforces retention | — | `max_files` |

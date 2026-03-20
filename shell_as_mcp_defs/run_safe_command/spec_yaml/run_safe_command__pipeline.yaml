@@ -1,0 +1,80 @@
+apiVersion: v1
+tool:
+  name: run_safe_command__pipeline
+  description: |-
+    /**
+     * Execute a safe shell pipeline from structured stage definitions.
+     * @remarks Each stage is validated against a command allowlist before execution.
+     *   The pipeline is assembled using Python subprocess chaining (Popen stdin chains),
+     *   not via shell eval or bash -c with user-supplied data. Commands are restricted
+     *   to a safe processing-only allowlist; destructive or network commands are not
+     *   permitted. Unlike run_safe_command__execute, this tool accepts pipe-connected
+     *   stage sequences but applies stricter per-stage command validation to compensate.
+     *   On darwin/arm64, pre-execution auth prefers native Swift+WKWebView and
+     *   automatically falls back to OSA.
+     * @param stages_json JSON array of pipeline stage objects. Each stage must have
+     *   "command" (string) and "args" (string array). Commands must pass the
+     *   pipeline allowlist: grep, awk, sed, cut, sort, uniq, wc, head, tail, cat,
+     *   echo, tr, xargs, find, ls, ps, du, df, date, env, printenv, uname,
+     *   hostname, id, whoami, pwd, dirname, basename.
+     *   Example: [{"command":"ps","args":["aux"]},{"command":"grep","args":["python"]}]
+     * @param working_dir Absolute working directory shared by all pipeline stages.
+     */
+  input:
+    properties:
+      stages_json:
+        type: string
+        description: >-
+          JSON array of pipeline stage objects, each must have "command" (string) and
+          "args" (string array). Commands are restricted to a safe allowlist (grep, awk,
+          sed, cut, sort, uniq, wc, head, tail, cat, echo, tr, xargs, find, ls, ps, du,
+          df, date, env, printenv, uname, hostname, id, whoami, pwd, dirname, basename).
+      working_dir:
+        type: string
+        description: Absolute working directory shared by all pipeline stages.
+    required: [stages_json, working_dir]
+  output:
+    type: object
+    description: Structured pipeline execution result.
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    fromParams:
+      TOOL_STAGES_JSON: stages_json
+      TOOL_WORKING_DIR: working_dir
+  taskMode: async
+  timeoutMs: 60000
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/run_safe_command__pipeline.sh
+    interpreter: bash

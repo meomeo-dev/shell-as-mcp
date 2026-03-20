@@ -1,0 +1,86 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__add_fade
+  description: |-
+    /**
+     * Add fade-in and/or fade-out transitions to a video clip.
+     * @remarks At least one of fade_in_duration or fade_out_duration must be greater than zero. Audio fade is applied simultaneously when include_audio is true. Returns JSON in stdout with output_path and applied parameters.
+     * @param input_path Source video path.
+     * @param output_path Destination video path with fade transitions.
+     * @param fade_in_duration Fade-in duration in seconds. Default 0 (no fade in).
+     * @param fade_out_duration Fade-out duration in seconds. Default 0 (no fade out).
+     * @param fade_color Fade transition color: black or white. Default black.
+     * @param include_audio Whether to apply afade filter synchronously with the video fade. Default true.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video path.
+      output_path:
+        type: string
+        description: Destination video path with fade transitions.
+      fade_in_duration:
+        type: number
+        description: Fade-in duration in seconds. Default 0 (no fade in).
+      fade_out_duration:
+        type: number
+        description: Fade-out duration in seconds. Default 0 (no fade out).
+      fade_color:
+        type: string
+        description: Fade transition color. Accepts black or white. Default black.
+      include_audio:
+        type: boolean
+        description: Whether to apply audio afade filter to match the video fade. Default true.
+    required: [input_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      OUTPUT_PATH: output_path
+      FADE_IN_DURATION: fade_in_duration
+      FADE_OUT_DURATION: fade_out_duration
+      FADE_COLOR: fade_color
+      INCLUDE_AUDIO: include_audio
+  timeoutMs: 600000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ffmpeg__add_fade.sh
+    interpreter: bash

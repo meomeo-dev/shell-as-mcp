@@ -1,0 +1,81 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__generate_thumbnail
+  description: |-
+    /**
+     * Extract a single frame from a video at a specified timestamp to use as a thumbnail or poster image.
+     * @remarks Returns JSON in stdout with output_path and applied parameters. Output format is determined by output_path extension (jpg recommended).
+     * @param input_path Source video path.
+     * @param output_path Destination image path (for example thumbnail.jpg or poster.png).
+     * @param timestamp Timestamp to extract the frame from. Default 00:00:01.
+     * @param width Output image width in pixels. Height is auto-calculated. Default 1280.
+     * @param quality JPEG quality factor 1-31 (lower value = better quality). Default 2.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video path.
+      output_path:
+        type: string
+        description: Destination image path (for example thumbnail.jpg or poster.png).
+      timestamp:
+        type: string
+        description: Timestamp to extract the frame from. Default 00:00:01.
+      width:
+        type: integer
+        description: Output image width in pixels. Height is auto-calculated to maintain aspect ratio. Default 1280.
+      quality:
+        type: integer
+        description: JPEG quality factor 1-31 (lower = better quality). Default 2.
+    required: [input_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      OUTPUT_PATH: output_path
+      TIMESTAMP: timestamp
+      WIDTH: width
+      QUALITY: quality
+  timeoutMs: 30000
+  taskMode: sync
+  maxOutputBytes: 65536
+  script:
+    path: ./scripts/ffmpeg__generate_thumbnail.sh
+    interpreter: bash

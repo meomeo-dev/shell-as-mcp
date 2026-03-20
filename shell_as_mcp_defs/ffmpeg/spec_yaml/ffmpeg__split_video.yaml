@@ -1,0 +1,83 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__split_video
+  description: |-
+    /**
+     * Split a single video into multiple segments at specified timestamps.
+     * @remarks split_points is a comma-separated list of timestamps (HH:MM:SS or seconds). Returns JSON in stdout with output_dir, segment_count, and segments array. Falls back to FFMPEG_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR if output_dir param is omitted.
+     * @param input_path Source video file path.
+     * @param output_dir Output directory for generated segments. Falls back to FFMPEG_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR.
+     * @param split_points Comma-separated list of cut timestamps, for example 00:10:00,00:20:00,00:30:00.
+     * @param output_prefix Filename prefix for segment files, default segment.
+     * @param reencode Whether to re-encode segments. Default false uses stream copy (faster but may cause keyframe misalignment).
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video file path.
+      output_dir:
+        type: string
+        description: Output directory for generated segments. Falls back to FFMPEG_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR.
+      split_points:
+        type: string
+        description: Comma-separated list of cut timestamps, for example 00:10:00,00:20:00,00:30:00.
+      output_prefix:
+        type: string
+        description: Filename prefix for segment files. Default segment.
+      reencode:
+        type: boolean
+        description: Whether to re-encode (true) or use stream copy (false). Default false.
+    required: [input_path, split_points]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromRuntime:
+      OUTPUT_DIR: [FFMPEG_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
+    fromParams:
+      INPUT_PATH: input_path
+      OUTPUT_DIR: output_dir
+      SPLIT_POINTS: split_points
+      OUTPUT_PREFIX: output_prefix
+      REENCODE: reencode
+  timeoutMs: 600000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ffmpeg__split_video.sh
+    interpreter: bash

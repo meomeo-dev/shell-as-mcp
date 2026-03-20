@@ -1,0 +1,86 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__mix_audio_tracks
+  description: |-
+    /**
+     * Mix two audio tracks (voice and background music) into a single output using the amix filter.
+     * @remarks Typical use: normalize voice first, then mix with BGM using a low bgm_volume (0.2–0.3). Returns JSON in stdout with output_path and applied volume parameters.
+     * @param voice_path Primary audio track path (for example voice or narration).
+     * @param bgm_path Background music track path.
+     * @param output_path Destination mixed audio path.
+     * @param voice_volume Volume multiplier for the primary track. Default 1.0.
+     * @param bgm_volume Volume multiplier for the background music track. Default 0.3.
+     * @param duration Output duration strategy: shortest (default), longest, or first.
+     */
+  input:
+    properties:
+      voice_path:
+        type: string
+        description: Primary audio track path (for example narration or voice recording).
+      bgm_path:
+        type: string
+        description: Background music track path.
+      output_path:
+        type: string
+        description: Destination mixed audio path.
+      voice_volume:
+        type: number
+        description: Volume multiplier for the primary track. Default 1.0.
+      bgm_volume:
+        type: number
+        description: Volume multiplier for the background music track. Default 0.3.
+      duration:
+        type: string
+        description: Output duration strategy. Accepts shortest, longest, or first. Default shortest.
+    required: [voice_path, bgm_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      VOICE_PATH: voice_path
+      BGM_PATH: bgm_path
+      OUTPUT_PATH: output_path
+      VOICE_VOLUME: voice_volume
+      BGM_VOLUME: bgm_volume
+      DURATION: duration
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ffmpeg__mix_audio_tracks.sh
+    interpreter: bash

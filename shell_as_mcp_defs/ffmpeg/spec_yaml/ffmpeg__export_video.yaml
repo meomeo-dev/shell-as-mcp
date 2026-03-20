@@ -1,0 +1,111 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__export_video
+  description: |-
+    /**
+     * Transcode a video to a delivery-grade output with full codec and quality control.
+     * @remarks Supports H.264, H.265, and VP9. Use crf for quality-based encoding or bitrate for target-bitrate mode (mutually exclusive; bitrate takes precedence). Returns JSON in stdout with output_path and applied parameters.
+     * @param input_path Source video path.
+     * @param output_path Destination video path.
+     * @param video_codec Output video codec: libx264, libx265, or libvpx-vp9. Default libx264.
+     * @param crf Constant Rate Factor for quality-based encoding. Default 23 for H.264, 28 for H.265, 33 for VP9.
+     * @param bitrate Target video bitrate (for example 4M). Overrides crf when set.
+     * @param preset Encoding speed/compression preset. Default medium.
+     * @param profile H.264/H.265 profile (for example baseline, main, high).
+     * @param level H.264/H.265 level (for example 4.0, 4.1).
+     * @param resolution Output resolution as WxH (for example 1920x1080). Keeps original if omitted.
+     * @param audio_bitrate Output audio bitrate. Default 128k.
+     * @param pixel_format Output pixel format. Default yuv420p.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video path.
+      output_path:
+        type: string
+        description: Destination video path.
+      video_codec:
+        type: string
+        description: Output video codec. Accepts libx264, libx265, or libvpx-vp9. Default libx264.
+      crf:
+        type: integer
+        description: Constant Rate Factor for quality-based encoding. Default 23 for H.264/H.265, 33 for VP9. Overridden by bitrate if set.
+      bitrate:
+        type: string
+        description: Target video bitrate (for example 4M). Takes precedence over crf when set.
+      preset:
+        type: string
+        description: Encoding speed/compression trade-off preset. Default medium.
+      profile:
+        type: string
+        description: H.264/H.265 encoder profile (for example baseline, main, high).
+      level:
+        type: string
+        description: H.264/H.265 encoder level (for example 4.0, 4.1, 5.0).
+      resolution:
+        type: string
+        description: Output resolution as WxH (for example 1920x1080). Keeps original resolution if omitted.
+      audio_bitrate:
+        type: string
+        description: Output audio bitrate. Default 128k.
+      pixel_format:
+        type: string
+        description: Output pixel format. Default yuv420p.
+    required: [input_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      OUTPUT_PATH: output_path
+      VIDEO_CODEC: video_codec
+      CRF: crf
+      BITRATE: bitrate
+      PRESET: preset
+      PROFILE: profile
+      LEVEL: level
+      RESOLUTION: resolution
+      AUDIO_BITRATE: audio_bitrate
+      PIXEL_FORMAT: pixel_format
+  timeoutMs: 1800000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ffmpeg__export_video.sh
+    interpreter: bash

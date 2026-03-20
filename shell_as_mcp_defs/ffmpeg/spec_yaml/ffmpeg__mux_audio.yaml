@@ -1,0 +1,81 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__mux_audio
+  description: |-
+    /**
+     * Replace or attach an audio track to a video by muxing a separate audio file.
+     * @remarks The original video audio is discarded. Typical use: attach a mixed or dubbed audio track to a graded video. Returns JSON in stdout with output_path and applied parameters.
+     * @param video_path Source video path (its original audio track will be discarded).
+     * @param audio_path Replacement audio track path.
+     * @param output_path Destination video path with the new audio track.
+     * @param audio_delay_ms Audio track delay in milliseconds (positive = delay audio). Default 0.
+     * @param reencode_audio Whether to re-encode the audio to AAC. Default false uses stream copy.
+     */
+  input:
+    properties:
+      video_path:
+        type: string
+        description: Source video path. Its original audio track will be replaced.
+      audio_path:
+        type: string
+        description: Replacement audio track path.
+      output_path:
+        type: string
+        description: Destination video path with the new audio track.
+      audio_delay_ms:
+        type: integer
+        description: Audio delay in milliseconds relative to video. Positive value delays audio. Default 0.
+      reencode_audio:
+        type: boolean
+        description: Whether to re-encode audio to AAC 128k. Default false uses stream copy.
+    required: [video_path, audio_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      VIDEO_PATH: video_path
+      AUDIO_PATH: audio_path
+      OUTPUT_PATH: output_path
+      AUDIO_DELAY_MS: audio_delay_ms
+      REENCODE_AUDIO: reencode_audio
+  timeoutMs: 300000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ffmpeg__mux_audio.sh
+    interpreter: bash

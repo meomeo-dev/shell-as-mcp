@@ -1,0 +1,86 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__generate_proxy
+  description: |-
+    /**
+     * Transcode high-bitrate source footage to an edit-friendly H.264 proxy.
+     * @remarks Generates a lower-bitrate proxy suitable for editing. Returns JSON in stdout with output_path and applied parameters.
+     * @param input_path Source video path.
+     * @param output_path Destination proxy video path.
+     * @param width Proxy output width in pixels. Height is auto-calculated to maintain aspect ratio. Default 1280.
+     * @param crf H.264 CRF quality factor (lower = better quality). Default 28.
+     * @param fps Optional output frame rate to unify mixed-fps footage.
+     * @param pixel_format Output pixel format. Default yuv420p for maximum compatibility.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video path.
+      output_path:
+        type: string
+        description: Destination proxy video path.
+      width:
+        type: integer
+        description: Proxy output width in pixels. Height is auto-calculated. Default 1280.
+      crf:
+        type: integer
+        description: H.264 CRF quality factor. Default 28.
+      fps:
+        type: number
+        description: Optional output frame rate to unify mixed-fps footage.
+      pixel_format:
+        type: string
+        description: Output pixel format. Default yuv420p.
+    required: [input_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      OUTPUT_PATH: output_path
+      WIDTH: width
+      CRF: crf
+      FPS: fps
+      PIXEL_FORMAT: pixel_format
+  timeoutMs: 600000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ffmpeg__generate_proxy.sh
+    interpreter: bash

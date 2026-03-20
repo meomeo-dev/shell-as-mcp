@@ -1,0 +1,71 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__apply_color_lut
+  description: |-
+    /**
+     * Apply a .cube format 3D color Look-Up Table (LUT) to a video for color grading.
+     * @remarks Uses the ffmpeg lut3d filter. Returns JSON in stdout with output_path and lut_path.
+     * @param input_path Source video path.
+     * @param lut_path Path to a .cube format LUT file.
+     * @param output_path Destination color-graded video path.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video path.
+      lut_path:
+        type: string
+        description: Path to a .cube format 3D LUT file.
+      output_path:
+        type: string
+        description: Destination color-graded video path.
+    required: [input_path, lut_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      LUT_PATH: lut_path
+      OUTPUT_PATH: output_path
+  timeoutMs: 600000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ffmpeg__apply_color_lut.sh
+    interpreter: bash

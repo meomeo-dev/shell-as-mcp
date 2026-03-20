@@ -1,0 +1,76 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__burn_subtitles
+  description: |-
+    /**
+     * Hard-burn SRT or ASS subtitle file into a video using the ffmpeg subtitles filter.
+     * @remarks Consumes .ass files produced by the ass bundle (ass__create_template). Re-encodes the video track. Returns JSON in stdout with output_path and applied parameters.
+     * @param input_path Source video path.
+     * @param subtitle_path Subtitle file path (.srt or .ass).
+     * @param output_path Destination video path with burned-in subtitles.
+     * @param force_style Optional ASS/SSA style override string (for example Fontsize=24,PrimaryColour=&HFFFFFF&). Applies to both SRT and ASS inputs.
+     */
+  input:
+    properties:
+      input_path:
+        type: string
+        description: Source video path.
+      subtitle_path:
+        type: string
+        description: Subtitle file path (.srt or .ass).
+      output_path:
+        type: string
+        description: Destination video path with burned-in subtitles.
+      force_style:
+        type: string
+        description: Optional ASS/SSA style override string (for example Fontsize=24,PrimaryColour=&HFFFFFF&). Applied via subtitles filter force_style option.
+    required: [input_path, subtitle_path, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: x86_64
+        support: declared
+        notes: Declared for Linux x86_64; not validated in-repo.
+      - os: linux
+        kernel: linux
+        arch: arm64
+        support: declared
+        notes: Declared for Linux arm64; not validated in-repo.
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      INPUT_PATH: input_path
+      SUBTITLE_PATH: subtitle_path
+      OUTPUT_PATH: output_path
+      FORCE_STYLE: force_style
+  timeoutMs: 600000
+  taskMode: async
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/ffmpeg__burn_subtitles.sh
+    interpreter: bash

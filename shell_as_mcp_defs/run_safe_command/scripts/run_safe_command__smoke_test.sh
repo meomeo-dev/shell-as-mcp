@@ -162,3 +162,72 @@ print(json.dumps({"status": "ok", "bundle": "run_safe_command", "mode": "generic
 PYEOF
 
 rm -f "$audit_file"
+
+# ---- pipeline smoke test ----
+pipeline_script="$script_dir/run_safe_command__pipeline.sh"
+
+if [[ ! -f "$pipeline_script" ]]; then
+  echo "SKIP: pipeline script not found: $pipeline_script" >&2
+  exit 0
+fi
+
+pipeline_audit_file="$(mktemp)"
+pipeline_output="$(
+  TOOL_STAGES_JSON='[{"command":"echo","args":["pipeline-smoke-ok"]},{"command":"grep","args":["pipeline-smoke-ok"]}]' \
+  TOOL_WORKING_DIR="$repo_root" \
+  TOOL_DEFAULT_APPROVALS="1" \
+  TOOL_REQUEST_ID="smoke-pipeline" \
+  TOOL_CONFIRM_ACTION="false" \
+  TOOL_AUDIT_FILE="$pipeline_audit_file" \
+  TOOL_EXECUTE_OUTPUT_MODE="full" \
+  bash "$pipeline_script"
+)"
+
+python3 - "$pipeline_output" <<'PYEOF'
+import json, sys
+
+raw = sys.argv[1]
+try:
+  payload = json.loads(raw)
+except json.JSONDecodeError as exc:
+  print(f"pipeline output is not valid JSON: {exc}", file=sys.stderr)
+  sys.exit(1)
+
+required_fields = ["status", "exit_code", "stdout", "stderr", "command", "execution_time_ms"]
+for field in required_fields:
+  if field not in payload:
+    print(f"missing required field in pipeline output: {field}", file=sys.stderr)
+    sys.exit(1)
+
+if payload.get("status") != "success":
+  print(f"pipeline status != success: {payload.get('status')}", file=sys.stderr)
+  sys.exit(1)
+
+if payload.get("exit_code") != 0:
+  print(f"pipeline exit_code != 0: {payload.get('exit_code')}", file=sys.stderr)
+  sys.exit(1)
+
+stdout_val = payload.get("stdout", "")
+if "pipeline-smoke-ok" not in stdout_val:
+  print(f"expected 'pipeline-smoke-ok' in stdout, got: {stdout_val!r}", file=sys.stderr)
+  sys.exit(1)
+
+cmd_label = payload.get("command", "")
+if "<pipeline:" not in cmd_label:
+  print(f"expected '<pipeline:' in command label, got: {cmd_label!r}", file=sys.stderr)
+  sys.exit(1)
+
+auth = payload.get("authorization", {})
+if not auth.get("verified"):
+  print(f"pipeline auth not verified: {auth}", file=sys.stderr)
+  sys.exit(1)
+
+audit_section = payload.get("audit", {})
+if not audit_section.get("written"):
+  print("pipeline audit not written", file=sys.stderr)
+  sys.exit(1)
+
+print(json.dumps({"status": "ok", "bundle": "run_safe_command", "mode": "pipeline"}, ensure_ascii=True))
+PYEOF
+
+rm -f "$pipeline_audit_file"

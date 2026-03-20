@@ -193,7 +193,7 @@ Follow these steps to add a tool:
 - `shell_as_mcp_defs/shell/` — base shell scripting utilities
 - `shell_as_mcp_defs/advanced_substation_alpha_ass/` — ASS subtitle format toolkit
 - `shell_as_mcp_defs/runprompt__generate_artifact/` — LLM-powered bundle auto-generation (WIP)
-- `shell_as_mcp_defs/run_safe_command/` — no-eval command execution with audit logging
+- `shell_as_mcp_defs/run_safe_command/` — no-eval single-command execution and safe multi-stage pipeline with audit logging
 
 **Lint scripts**
 - `scripts/lint/lint_all.sh` — lint entry point

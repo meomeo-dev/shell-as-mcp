@@ -234,7 +234,7 @@ shell_as_mcp_defs/<server>/
 | `brew__healthz` | 检测 brew bundle 运行时依赖（Homebrew）是否可用 | — | — |
 | `brew__info` | 查询 formula/cask 详情（版本、依赖、homepage） | `package_name` | `cask` |
 | `brew__search` | 搜索包 | `query` | `include_casks` |
-| `brew__list_installed` | 列出已安装包 | — | `casks_only`, `formulae_only` |
+| `brew__list_installed` | 列出已安装包 | — | `cask_only`, `formula_only` |
 | `brew__install` | 安装 formula/cask | `package_name`, `confirm_action` | `cask` |
 | `brew__uninstall` | 卸载 formula/cask | `package_name`, `confirm_action` | `cask`, `force` |
 | `brew__upgrade` | 升级 formula/cask | `package_name`, `confirm_action` | `cask` |
@@ -256,9 +256,9 @@ shell_as_mcp_defs/<server>/
 | `ytdlp__list_subtitle_languages` | 列出视频可用字幕语言 | `url` | `cookies`, `proxy` |
 | `ytdlp__get_video_metadata` | 获取视频完整元数据 JSON | `url` | `fields`, `cookies`, `proxy` |
 | `ytdlp__get_video_metadata_summary` | 获取视频元数据摘要（标题/时长/频道等） | `url` | `cookies`, `proxy` |
-| `ytdlp__get_video_comments` | 获取评论列表 | `url` | `max_count`, `sort`, `cookies` |
-| `ytdlp__get_video_comments_summary` | 获取评论摘要 | `url` | `count`, `cookies`, `proxy` |
-| `ytdlp__search_videos` | 搜索视频 | `query` | `count`, `offset`, `format` |
+| `ytdlp__get_video_comments` | 获取评论列表 | `url` | `maxComments`, `sortOrder`, `cookies`, `proxy` |
+| `ytdlp__get_video_comments_summary` | 获取评论摘要 | `url` | `maxComments`, `cookies`, `proxy` |
+| `ytdlp__search_videos` | 搜索视频 | `query` | `maxResults`, `offset`, `response_format`, `uploadDateFilter`, `cookies`, `proxy` |
 
 ### 3.4.1 输出目录默认值策略
 
@@ -292,7 +292,7 @@ Advanced SubStation Alpha（ASS）字幕格式工具集。
 | --- | --- | --- | --- |
 | `ass__healthz` | 检测 ASS bundle 运行时依赖（ffmpeg）是否可用 | — | — |
 | `ass__create_template` | 创建新的 ASS v4.00+ 字幕模板文件（含 Default/Title/Note 样式） | `output_path` | `title`, `play_res_x`, `play_res_y`, `overwrite` |
-| `ass__get_spec` | 返回 ASS 格式规范文档（只读参考工具） | — | — |
+| `ass__get_spec` | 返回 ASS 格式规范文档（只读参考工具） | — | `section` |
 | `ass__lint` | 检验/验证 ASS 字幕文件（16 条结构规则） | `ass_file_path` | `strict` |
 | `ass__smoke_test` | 渲染测试视频以验证 ASS 字幕可渲染性（需 ffmpeg） | `ass_file_path`, `output_path` | `duration_sec`, `resolution`, `background_color` |
 
@@ -306,6 +306,20 @@ Advanced SubStation Alpha（ASS）字幕格式工具集。
 | --- | --- | --- | --- |
 | `runprompt__healthz` | 检测 runprompt bundle 运行时先决条件（python3）是否可用 | — | — |
 | `runprompt__generate_artifact` | 通过 runprompt + LLM 在 `SHELL_AS_MCP_SPEC_DIR` 下自动生成完整 shell-as-mcp bundle | `artifact_type`, `requirements` | `server_name`, `tool_name`, `max_repair_rounds`, `run_tests`, `run_code_review`, `run_security_review` |
+
+---
+
+### 3.8 run_safe_command
+
+> ⚠️ `run_safe_command__execute` 以 **无 shell eval** 模式在经过验证的工作目录中执行指定可执行文件。在 darwin/arm64 系统上，执行前授权优先使用原生 Swift+WKWebView，并自动回退至 OSA。所有执行均写入结构化审计日志（audit log）。
+
+| 工具 | 描述 | 必填参数 | 可选参数 |
+| --- | --- | --- | --- |
+| `run_safe_command__healthz` | 检测 run_safe_command 运行时依赖与平台能力是否可用 | — | — |
+| `run_safe_command__execute` | 以无 shell eval 模式执行命令，并记录结构化安全与审计元数据 | `command`, `args_json`, `working_dir` | — |
+| `run_safe_command__help` | 显示 run_safe_command bundle 的用法说明与安全模型 | — | `topic` |
+| `run_safe_command__audit_get` | 读取最近的执行审计记录 | — | `limit`, `include_rotated`, `rotated_file_limit` |
+| `run_safe_command__audit_rotate` | 轮转审计文件并执行留存策略 | — | `max_files` |
 
 ---
 
@@ -473,12 +487,13 @@ make regress-pack-smoke
 bash scripts/lint/lint_all.sh
 ```
 
-`lint_all.sh` 分四类自动发现并校验：
+`lint_all.sh` 分五类自动发现并校验：
 
 - `spec_yaml/*.yaml` → `validate_shell_as_mcp_yaml.sh`（结构/字段/禁止模式）
 - `scripts/*.sh` → `validate_script.sh`（shellcheck）
 - `prompts/*.prompt`（非 `_` 开头） → `validate_runprompt_prompt.sh`（frontmatter/schema）
 - `spec_yaml/*.yaml`（含 `support: tested`）→ `validate_tested_has_smoke_test.sh`（校验对应 per-target smoke test 是否存在）
+- `SKILL.md` → `validate_skill_md.sh`（frontmatter 与结构）
 
 `run_smoke_tests.sh` 会先跑各 bundle 通用 smoke test（`*__smoke_test.sh`），再自动发现并执行当前平台匹配的 per-target smoke test（如 `*__smoke_test__darwin_arm64.sh`）。
 

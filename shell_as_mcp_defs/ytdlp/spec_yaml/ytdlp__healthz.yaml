@@ -4,7 +4,8 @@ tool:
   description: |-
     /**
      * Check whether ytdlp bundle runtime dependency is available.
-     * @remarks Verifies yt-dlp command presence and returns version in JSON.
+     * @remarks Verifies yt-dlp, python3, node and _ytdlp_cookies_lib.sh availability,
+     *          then returns yt-dlp version in JSON.
      */
   input:
     properties: {}

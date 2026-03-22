@@ -9,6 +9,7 @@ tool:
      *   Outputs a JSON summary on success or an error payload on failure.
      * @param ass_file_path Path to the ASS subtitle file to render.
      * @param output_path Path for the output MP4 video file.
+    * @param output_dir Optional output directory fallback for relative output_path. Falls back to ASS_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR.
      * @param duration_sec Duration of the test video in seconds (1-300). Default: 10.
      * @param resolution Output video resolution in WxH format. Default: 1920x1080.
      * @param background_color Background color for the test video (ffmpeg color name or hex). Default: black.
@@ -21,6 +22,9 @@ tool:
       output_path:
         type: string
         description: "Path for the output MP4 video file."
+      output_dir:
+        type: string
+        description: "Optional output directory fallback for relative output_path. Falls back to ASS_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR."
       duration_sec:
         type: integer
         description: "Duration of the test video in seconds (1-300). Default: 10."
@@ -44,9 +48,12 @@ execution:
   shell:
     mode: direct
   env:
+    fromRuntime:
+      TOOL_OUTPUT_DIR: [ASS_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
     fromParams:
       TOOL_ASS_FILE_PATH: ass_file_path
       TOOL_OUTPUT_PATH: output_path
+      TOOL_OUTPUT_DIR: output_dir
       TOOL_DURATION_SEC: duration_sec
       TOOL_RESOLUTION: resolution
       TOOL_BACKGROUND_COLOR: background_color

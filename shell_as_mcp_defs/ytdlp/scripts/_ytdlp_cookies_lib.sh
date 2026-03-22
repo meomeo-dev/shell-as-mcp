@@ -30,12 +30,12 @@ if [[ -z "${TOOL_COOKIES}" && -f "${_ENC_COOKIES}" ]]; then
     TOOL_COOKIES="${_COOKIES_TMPFILE}"
   else
     printf 'WARN: stored cookies could not be decrypted, proceeding without cookies\n' >&2
-    rm -f "${_COOKIES_TMPFILE}"
+    command rm -f "${_COOKIES_TMPFILE}"
     _COOKIES_TMPFILE=""
   fi
 fi
 
 # Cleanup function — include in your trap EXIT to remove the temp file
 _ytdlp_cookies_cleanup() {
-  [[ -n "${_COOKIES_TMPFILE:-}" ]] && rm -f "${_COOKIES_TMPFILE}"
+  [[ -n "${_COOKIES_TMPFILE:-}" ]] && command rm -f "${_COOKIES_TMPFILE}"
 }

@@ -8,8 +8,10 @@ tool:
      *          plain text (strips timestamps, NOTE blocks, duplicate adjacent lines), then cleans up.
      * @param url The video URL (must start with http:// or https://).
      * @param language Subtitle language code. Defaults to "en".
+    * @param output_dir Optional output directory. If set, transcript text is also saved as a .txt file.
      * @param cookies Optional path to a Netscape-format cookies file.
      * @param proxy Optional proxy address.
+    * @param maxRetries Optional retry count after failures, capped at 2 (default: 2).
      */
   input:
     properties:
@@ -19,12 +21,18 @@ tool:
       language:
         type: string
         description: "Subtitle language code (e.g. en, zh-Hans). Defaults to \"en\"."
+      output_dir:
+        type: string
+        description: "Optional output directory. If set, transcript text is also saved as a .txt file."
       cookies:
         type: string
         description: "Optional path to a Netscape-format cookies file."
       proxy:
         type: string
         description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+      maxRetries:
+        type: number
+        description: "Optional retry count after failures. Max supported value is 2."
     required: [url]
   output:
     type: object
@@ -39,11 +47,15 @@ execution:
   shell:
     mode: direct
   env:
+    fromRuntime:
+      TOOL_OUTPUT_DIR: [YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
     fromParams:
       TOOL_URL: url
       TOOL_LANGUAGE: language
+      TOOL_OUTPUT_DIR: output_dir
       TOOL_COOKIES: cookies
       TOOL_PROXY: proxy
+      TOOL_MAX_RETRIES: maxRetries
   compatibility:
     targets:
       - os: macos

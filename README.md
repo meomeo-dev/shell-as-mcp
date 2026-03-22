@@ -209,11 +209,12 @@ shell_as_mcp_defs/<server>/
 | `ffmpeg__process_video_for_llm` | Video preprocessing (trim/scale/fps/speed/strip audio/watermark) | `input_path`, `output_path` | `start_time`, `end_time`, `max_resolution`, `fps`, `speed_factor`, `strip_audio`, `watermark_path` |
 | `ffmpeg__process_audio_for_stt` | Audio preprocessing (segment/resample/mono/silence removal) | `input_path`, `output_path` | `start_time`, `end_time`, `sample_rate`, `channels`, `remove_silence`, `audio_format` |
 | `ffmpeg__extract_frames_for_vision` | Frame extraction for vision (low fps or keyframes) | `input_path` | `output_dir`, `start_time`, `end_time`, `fps`, `keyframes_only`, `max_resolution` |
+| `ffmpeg__split_video` | Split one video into multiple segments at specified timestamps | `input_path`, `split_points` | `output_dir`, `output_prefix`, `reencode` |
 | `ffmpeg__create_video_summary` | Montage summary video (multi-input sampling and concatenation) | `input_paths`, `output_path` | `interval_sec`, `clip_duration_sec`, `merge_audio` |
 
 ### 3.2.1 ffmpeg Output Directory Defaults
 
-Currently applies only to `ffmpeg__extract_frames_for_vision`.
+Currently applies to `ffmpeg__extract_frames_for_vision` and `ffmpeg__split_video`.
 
 Priority order:
 
@@ -291,10 +292,20 @@ Advanced SubStation Alpha (ASS) subtitle format toolkit.
 | Tool | Description | Required Params | Optional Params |
 | --- | --- | --- | --- |
 | `ass__healthz` | Probes whether ASS bundle runtime dependencies (ffmpeg) are available | — | — |
-| `ass__create_template` | Creates a new ASS v4.00+ subtitle template file (with Default/Title/Note styles) | `output_path` | `title`, `play_res_x`, `play_res_y`, `overwrite` |
+| `ass__create_template` | Creates a new ASS v4.00+ subtitle template file (with Default/Title/Note styles) | `output_path` | `output_dir`, `title`, `play_res_x`, `play_res_y`, `overwrite` |
 | `ass__get_spec` | Returns the ASS format specification document (read-only reference tool) | — | `section` |
 | `ass__lint` | Validates/lints an ASS subtitle file (16 structural rules) | `ass_file_path` | `strict` |
-| `ass__smoke_test` | Renders a test video to verify ASS subtitle renderability (requires ffmpeg) | `ass_file_path`, `output_path` | `duration_sec`, `resolution`, `background_color` |
+| `ass__smoke_test` | Renders a test video to verify ASS subtitle renderability (requires ffmpeg) | `ass_file_path`, `output_path` | `output_dir`, `duration_sec`, `resolution`, `background_color` |
+
+### 3.6.1 ASS Output Directory Defaults
+
+Applies to `ass__create_template` and `ass__smoke_test` when `output_path` is a relative path.
+
+Priority order:
+
+1. Explicit parameter `output_dir`
+2. Group-level env var `ASS_OUTPUT_DIR`
+3. Global env var `SHELL_AS_MCP_OUTPUT_DIR`
 
 ---
 
@@ -435,9 +446,10 @@ All of the following env vars can be placed directly in `mcpServers.<name>.env`.
 
 | Env Var | Purpose | Applicable Tools |
 | --- | --- | --- |
-| `SHELL_AS_MCP_OUTPUT_DIR` | Global output directory fallback | `ytdlp__download_video`, `ytdlp__download_audio`, `ytdlp__download_video_subtitles`, `ffmpeg__extract_frames_for_vision` |
+| `SHELL_AS_MCP_OUTPUT_DIR` | Global output directory fallback | `ytdlp__download_video`, `ytdlp__download_audio`, `ytdlp__download_video_subtitles`, `ffmpeg__extract_frames_for_vision`, `ffmpeg__split_video`, `ass__create_template`, `ass__smoke_test` |
 | `YTDLP_OUTPUT_DIR` | ytdlp group-level output directory | `ytdlp__download_video`, `ytdlp__download_audio`, `ytdlp__download_video_subtitles` |
-| `FFMPEG_OUTPUT_DIR` | ffmpeg group-level output directory | `ffmpeg__extract_frames_for_vision` |
+| `FFMPEG_OUTPUT_DIR` | ffmpeg group-level output directory | `ffmpeg__extract_frames_for_vision`, `ffmpeg__split_video` |
+| `ASS_OUTPUT_DIR` | ASS group-level output directory | `ass__create_template`, `ass__smoke_test` |
 
 #### runprompt Generation
 

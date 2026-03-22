@@ -77,7 +77,7 @@ test("maps params into command args and env vars", () => {
   }
 });
 
-test("fromParams overrides runtime fallback for the same env var", () => {
+test("ytdlp output_dir fallback applies and fromParams overrides runtime fallback", () => {
   const originalGroup = process.env.YTDLP_OUTPUT_DIR;
   const originalGlobal = process.env.SHELL_AS_MCP_OUTPUT_DIR;
   process.env.YTDLP_OUTPUT_DIR = "/tmp/group-output";
@@ -112,6 +112,9 @@ test("fromParams overrides runtime fallback for the same env var", () => {
   };
 
   try {
+    const fallbackPlan = buildExecutionPlan(spec, {});
+    assert.equal(fallbackPlan.env.TOOL_OUTPUT_DIR, "/tmp/group-output");
+
     const plan = buildExecutionPlan(spec, { output_dir: "/tmp/param-output" });
     assert.equal(plan.env.TOOL_OUTPUT_DIR, "/tmp/param-output");
   } finally {
@@ -203,6 +206,60 @@ test("runtime fallback uses global ffmpeg output dir when group env is absent", 
   }
 });
 
+test("ffmpeg output_dir fallback applies and fromParams overrides runtime fallback", () => {
+  const originalGroup = process.env.FFMPEG_OUTPUT_DIR;
+  const originalGlobal = process.env.SHELL_AS_MCP_OUTPUT_DIR;
+  process.env.FFMPEG_OUTPUT_DIR = "/tmp/ffmpeg-group-output";
+  process.env.SHELL_AS_MCP_OUTPUT_DIR = "/tmp/ffmpeg-global-output";
+
+  const spec: ShellToolSpec = {
+    apiVersion: "v1",
+    tool: {
+      name: "demo__ffmpeg_split",
+      description: "/** demo */",
+      input: {
+        properties: {
+          output_dir: { type: "string" },
+        },
+      },
+      output: { type: "object", properties: {} },
+    },
+    execution: {
+      shell: { mode: "direct" },
+      env: {
+        fromRuntime: {
+          TOOL_OUTPUT_DIR: ["FFMPEG_OUTPUT_DIR", "SHELL_AS_MCP_OUTPUT_DIR"],
+        },
+        fromParams: {
+          TOOL_OUTPUT_DIR: "output_dir",
+        },
+      },
+      command: {
+        executable: "echo",
+      },
+    },
+  };
+
+  try {
+    const fallbackPlan = buildExecutionPlan(spec, {});
+    assert.equal(fallbackPlan.env.TOOL_OUTPUT_DIR, "/tmp/ffmpeg-group-output");
+
+    const overridePlan = buildExecutionPlan(spec, { output_dir: "/tmp/ffmpeg-param-output" });
+    assert.equal(overridePlan.env.TOOL_OUTPUT_DIR, "/tmp/ffmpeg-param-output");
+  } finally {
+    if (originalGroup === undefined) {
+      delete process.env.FFMPEG_OUTPUT_DIR;
+    } else {
+      process.env.FFMPEG_OUTPUT_DIR = originalGroup;
+    }
+    if (originalGlobal === undefined) {
+      delete process.env.SHELL_AS_MCP_OUTPUT_DIR;
+    } else {
+      process.env.SHELL_AS_MCP_OUTPUT_DIR = originalGlobal;
+    }
+  }
+});
+
 test("bundled ffmpeg extract spec exposes layered output directory defaults", async () => {
   const specs = await loadSpecs(specDir);
   const spec = specs.find((item) => item.tool.name === "ffmpeg__extract_frames_for_vision");
@@ -215,6 +272,36 @@ test("bundled ffmpeg extract spec exposes layered output directory defaults", as
     "SHELL_AS_MCP_OUTPUT_DIR",
   ]);
   assert.equal(spec.execution.env?.fromParams?.TOOL_OUTPUT_DIR, "output_dir");
+});
+
+test("bundled ffmpeg split spec exposes layered output directory defaults", async () => {
+  const specs = await loadSpecs(specDir);
+  const spec = specs.find((item) => item.tool.name === "ffmpeg__split_video");
+
+  assert.ok(spec);
+  assert.equal(spec.tool.input.properties.output_dir?.type, "string");
+  assert.deepEqual(spec.execution.env?.fromRuntime?.TOOL_OUTPUT_DIR, [
+    "FFMPEG_OUTPUT_DIR",
+    "SHELL_AS_MCP_OUTPUT_DIR",
+  ]);
+  assert.equal(spec.execution.env?.fromParams?.TOOL_OUTPUT_DIR, "output_dir");
+});
+
+test("bundled ass specs expose layered output directory defaults", async () => {
+  const specs = await loadSpecs(specDir);
+  const expectedTools = new Set(["ass__create_template", "ass__smoke_test"]);
+  const matchedSpecs = specs.filter((spec) => expectedTools.has(spec.tool.name));
+
+  assert.equal(matchedSpecs.length, 2);
+
+  for (const spec of matchedSpecs) {
+    assert.equal(spec.tool.input.properties.output_dir?.type, "string");
+    assert.deepEqual(spec.execution.env?.fromRuntime?.TOOL_OUTPUT_DIR, [
+      "ASS_OUTPUT_DIR",
+      "SHELL_AS_MCP_OUTPUT_DIR",
+    ]);
+    assert.equal(spec.execution.env?.fromParams?.TOOL_OUTPUT_DIR, "output_dir");
+  }
 });
 
 test("maps params into script args with relative path and interpreter", () => {

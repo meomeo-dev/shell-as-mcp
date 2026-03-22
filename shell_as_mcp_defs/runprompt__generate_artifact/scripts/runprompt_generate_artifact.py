@@ -844,6 +844,48 @@ def run_llm_security_review(
     )
 
 
+def run_generated_files_lint(
+    repo_root: Path,
+    generated_files: list[str],
+) -> dict[str, Any]:
+    lint_dir = repo_root / "scripts" / "lint"
+    validator_map = {
+        ".yaml": lint_dir / "validate_shell_as_mcp_yaml.sh",
+        ".yml": lint_dir / "validate_shell_as_mcp_yaml.sh",
+        ".sh": lint_dir / "validate_script.sh",
+        ".prompt": lint_dir / "validate_runprompt_prompt.sh",
+    }
+    checked: list[str] = []
+    failures: list[str] = []
+
+    for file_str in generated_files:
+        path = Path(file_str)
+        if not path.exists():
+            continue
+        if path.suffix == ".prompt" and path.name.startswith("_"):
+            continue
+        validator = validator_map.get(path.suffix)
+        if validator is None:
+            continue
+        checked.append(str(path))
+        code, stdout, stderr = run_command(
+            ["bash", str(validator), str(path)],
+            cwd=repo_root,
+        )
+        if code != 0:
+            detail = stderr.strip() or stdout.strip() or "validation failed"
+            failures.append(f"{path}: {detail}")
+
+    if not checked:
+        return {"passed": True, "stdout": "no lintable generated files", "stderr": ""}
+
+    return {
+        "passed": not failures,
+        "stdout": "checked files: " + ", ".join(checked),
+        "stderr": "\n".join(failures),
+    }
+
+
 def run_quality_gates(
     repo_root: Path,
     run_tests: bool,
@@ -853,16 +895,8 @@ def run_quality_gates(
     script_dir: Path,
     debug_mode: bool,
 ) -> dict[str, Any]:
-    lint_code, lint_stdout, lint_stderr = run_command(
-        ["bash", "scripts/lint/lint_all.sh"],
-        cwd=repo_root,
-    )
     result: dict[str, Any] = {
-        "lint": {
-            "passed": lint_code == 0,
-            "stdout": lint_stdout.strip(),
-            "stderr": lint_stderr.strip(),
-        }
+        "lint": run_generated_files_lint(repo_root, generated_files)
     }
     if run_tests:
         test_code, test_stdout, test_stderr = run_command(

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUTPUT_DIR="${OUTPUT_DIR:?output_dir is required via output_dir param, FFMPEG_OUTPUT_DIR, or SHELL_AS_MCP_OUTPUT_DIR}"
+OUTPUT_DIR="${TOOL_OUTPUT_DIR:?output_dir is required via output_dir param, FFMPEG_OUTPUT_DIR, or SHELL_AS_MCP_OUTPUT_DIR}"
 mkdir -p "$OUTPUT_DIR"
 
 # shellcheck disable=SC2016
@@ -10,7 +10,7 @@ const {execFileSync} = require("child_process");
 const path = require("path");
 
 const inputPath = process.env.INPUT_PATH;
-const outputDir = process.env.OUTPUT_DIR;
+const outputDir = process.env.TOOL_OUTPUT_DIR;
 const prefix = process.env.OUTPUT_PREFIX || "segment";
 const reencode = (process.env.REENCODE || "false") === "true";
 const splitPoints = (process.env.SPLIT_POINTS || "").split(",").map(s => s.trim()).filter(Boolean);

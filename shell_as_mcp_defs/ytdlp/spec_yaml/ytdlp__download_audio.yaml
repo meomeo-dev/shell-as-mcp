@@ -24,6 +24,9 @@ tool:
       proxy:
         type: string
         description: "Optional proxy address (e.g. socks5://127.0.0.1:1080)."
+      maxRetries:
+        type: number
+        description: "Optional retry count after failures. Max supported value is 2."
     required: [url]
   output:
     type: object
@@ -45,6 +48,7 @@ execution:
       TOOL_OUTPUT_DIR: output_dir
       TOOL_COOKIES: cookies
       TOOL_PROXY: proxy
+      TOOL_MAX_RETRIES: maxRetries
   compatibility:
     targets:
       - os: macos

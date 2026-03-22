@@ -209,11 +209,12 @@ shell_as_mcp_defs/<server>/
 | `ffmpeg__process_video_for_llm` | 视频预处理（裁剪/缩放/降帧/倍速/去音频/水印） | `input_path`, `output_path` | `start_time`, `end_time`, `max_resolution`, `fps`, `speed_factor`, `strip_audio`, `watermark_path` |
 | `ffmpeg__process_audio_for_stt` | 音频预处理（片段/降采样/单声道/静音移除） | `input_path`, `output_path` | `start_time`, `end_time`, `sample_rate`, `channels`, `remove_silence`, `audio_format` |
 | `ffmpeg__extract_frames_for_vision` | 视觉抽帧（低帧率或关键帧） | `input_path` | `output_dir`, `start_time`, `end_time`, `fps`, `keyframes_only`, `max_resolution` |
+| `ffmpeg__split_video` | 按时间点将单个视频切分为多个片段 | `input_path`, `split_points` | `output_dir`, `output_prefix`, `reencode` |
 | `ffmpeg__create_video_summary` | 蒙太奇摘要视频（多输入采样拼接） | `input_paths`, `output_path` | `interval_sec`, `clip_duration_sec`, `merge_audio` |
 
 ### 3.2.1 ffmpeg 输出目录默认值策略
 
-当前仅对 `ffmpeg__extract_frames_for_vision` 生效。
+当前对 `ffmpeg__extract_frames_for_vision` 与 `ffmpeg__split_video` 生效。
 
 优先级如下：
 
@@ -291,10 +292,20 @@ Advanced SubStation Alpha（ASS）字幕格式工具集。
 | 工具 | 描述 | 必填参数 | 可选参数 |
 | --- | --- | --- | --- |
 | `ass__healthz` | 检测 ASS bundle 运行时依赖（ffmpeg）是否可用 | — | — |
-| `ass__create_template` | 创建新的 ASS v4.00+ 字幕模板文件（含 Default/Title/Note 样式） | `output_path` | `title`, `play_res_x`, `play_res_y`, `overwrite` |
+| `ass__create_template` | 创建新的 ASS v4.00+ 字幕模板文件（含 Default/Title/Note 样式） | `output_path` | `output_dir`, `title`, `play_res_x`, `play_res_y`, `overwrite` |
 | `ass__get_spec` | 返回 ASS 格式规范文档（只读参考工具） | — | `section` |
 | `ass__lint` | 检验/验证 ASS 字幕文件（16 条结构规则） | `ass_file_path` | `strict` |
-| `ass__smoke_test` | 渲染测试视频以验证 ASS 字幕可渲染性（需 ffmpeg） | `ass_file_path`, `output_path` | `duration_sec`, `resolution`, `background_color` |
+| `ass__smoke_test` | 渲染测试视频以验证 ASS 字幕可渲染性（需 ffmpeg） | `ass_file_path`, `output_path` | `output_dir`, `duration_sec`, `resolution`, `background_color` |
+
+### 3.6.1 ASS 输出目录默认值策略
+
+当 `output_path` 为相对路径时，对 `ass__create_template` 与 `ass__smoke_test` 生效。
+
+优先级如下：
+
+1. 显式参数 `output_dir`
+2. 组级环境变量 `ASS_OUTPUT_DIR`
+3. 全局环境变量 `SHELL_AS_MCP_OUTPUT_DIR`
 
 ---
 
@@ -435,9 +446,10 @@ pip install "git+https://github.com/chr15m/runprompt.git"
 
 | 环境变量 | 作用 | 当前适用范围 |
 | --- | --- | --- |
-| `SHELL_AS_MCP_OUTPUT_DIR` | 全局输出目录兜底 | `ytdlp__download_video`、`ytdlp__download_audio`、`ytdlp__download_video_subtitles`、`ffmpeg__extract_frames_for_vision` |
+| `SHELL_AS_MCP_OUTPUT_DIR` | 全局输出目录兜底 | `ytdlp__download_video`、`ytdlp__download_audio`、`ytdlp__download_video_subtitles`、`ffmpeg__extract_frames_for_vision`、`ffmpeg__split_video`、`ass__create_template`、`ass__smoke_test` |
 | `YTDLP_OUTPUT_DIR` | ytdlp 组级输出目录 | `ytdlp__download_video`、`ytdlp__download_audio`、`ytdlp__download_video_subtitles` |
-| `FFMPEG_OUTPUT_DIR` | ffmpeg 组级输出目录 | `ffmpeg__extract_frames_for_vision` |
+| `FFMPEG_OUTPUT_DIR` | ffmpeg 组级输出目录 | `ffmpeg__extract_frames_for_vision`、`ffmpeg__split_video` |
+| `ASS_OUTPUT_DIR` | ASS 组级输出目录 | `ass__create_template`、`ass__smoke_test` |
 
 #### runprompt 生成类
 

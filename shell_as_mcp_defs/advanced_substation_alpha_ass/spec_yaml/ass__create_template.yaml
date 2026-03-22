@@ -7,6 +7,7 @@ tool:
      * @remarks Writes a valid ASS v4.00+ file with pre-configured styles for general subtitles,
      * title overlays, and note text. Fails if the output file already exists unless overwrite=true.
      * @param output_path Destination path for the generated .ass file.
+    * @param output_dir Optional output directory fallback for relative output_path. Falls back to ASS_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR.
      * @param title Script title embedded in [Script Info] section. Default: "Untitled".
      * @param play_res_x Virtual canvas width in pixels. Default: 1920.
      * @param play_res_y Virtual canvas height in pixels. Default: 1080.
@@ -17,6 +18,9 @@ tool:
       output_path:
         type: string
         description: "Destination path for the generated .ass file."
+      output_dir:
+        type: string
+        description: "Optional output directory fallback for relative output_path. Falls back to ASS_OUTPUT_DIR or SHELL_AS_MCP_OUTPUT_DIR."
       title:
         type: string
         description: "Script title embedded in [Script Info] section. Default: Untitled."
@@ -43,8 +47,11 @@ execution:
   shell:
     mode: direct
   env:
+    fromRuntime:
+      TOOL_OUTPUT_DIR: [ASS_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
     fromParams:
       TOOL_OUTPUT_PATH: output_path
+      TOOL_OUTPUT_DIR: output_dir
       TOOL_TITLE: title
       TOOL_PLAY_RES_X: play_res_x
       TOOL_PLAY_RES_Y: play_res_y

@@ -68,10 +68,10 @@ execution:
       FFMPEG_HIDE_BANNER: "1"
       FFMPEG_LOG_LEVEL: "error"
     fromRuntime:
-      OUTPUT_DIR: [FFMPEG_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
+      TOOL_OUTPUT_DIR: [FFMPEG_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR]
     fromParams:
       INPUT_PATH: input_path
-      OUTPUT_DIR: output_dir
+      TOOL_OUTPUT_DIR: output_dir
       SPLIT_POINTS: split_points
       OUTPUT_PREFIX: output_prefix
       REENCODE: reencode

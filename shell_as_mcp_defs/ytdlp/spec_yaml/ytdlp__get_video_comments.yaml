@@ -11,6 +11,7 @@ tool:
      * @param sortOrder Comment sort order: "top" (default) or "new".
      * @param cookies Optional path to a Netscape-format cookies file.
      * @param proxy Optional proxy address.
+    * @param maxRetries Optional retry count after failures, capped at 2 (default: 2).
      */
   input:
     properties:

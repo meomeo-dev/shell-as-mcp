@@ -5,6 +5,8 @@ tool:
     /**
      * Read recent run_safe_command execution audit records.
      * @param limit Maximum number of most recent entries to return. Default 20.
+     * @param include_rotated Include rotated audit files in addition to the active audit file. Default true.
+     * @param rotated_file_limit Maximum number of rotated audit files to scan. Range 1-50. Default 10.
      */
   input:
     properties:

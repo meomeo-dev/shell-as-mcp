@@ -1,0 +1,47 @@
+apiVersion: v1
+tool:
+  name: iwencai__skillbook
+  description: |-
+    /**
+     * Export the built-in iwencai skillbook for LLM onboarding and local reference.
+     * @remarks Reads the embedded skillbook from the local iwencai installation, returns stdout only, and never writes files. When format=json, source_path is redacted to a stable embedded URI.
+     * @param format Output format: markdown (default) or json.
+     */
+  input:
+    properties:
+      format:
+        type: string
+        description: "Output format: markdown (default) or json."
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS for local skillbook export and json source_path redaction.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+  env:
+    fromParams:
+      TOOL_FORMAT: format
+  timeoutMs: 30000
+  maxOutputBytes: 262144
+  script:
+    path: ./scripts/iwencai__skillbook.sh
+    interpreter: bash

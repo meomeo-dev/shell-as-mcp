@@ -10,6 +10,7 @@ tool:
       * @param output_dir Optional output directory. Falls back to YTDLP_OUTPUT_DIR, SHELL_AS_MCP_OUTPUT_DIR, or ~/Downloads.
       * @param cookies Optional path to a Netscape-format cookies file.
      * @param proxy Optional proxy address.
+    * @param maxRetries Optional retry count after failures, capped at 2 (default: 2).
      */
   input:
     properties:

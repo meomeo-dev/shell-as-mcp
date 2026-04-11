@@ -1,6 +1,6 @@
 {
   "name": "shell-as-mcp",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "TypeScript MCP server — map shell commands to MCP tools via single-file YAML specs.",
   "main": "dist/src/index.js",
   "bin": {
@@ -13,7 +13,7 @@
     "prepare": "npm run build && rm -rf dist/shell_as_mcp_defs && cp -r shell_as_mcp_defs dist/shell_as_mcp_defs",
     "start": "node dist/src/index.js",
     "dev": "tsx src/index.ts",
-    "test": "tsx --test test/*.test.ts test/e2e/*.test.ts"
+    "test": "tsx --test test/*.test.ts test/contracts/*.test.ts test/e2e/*.test.ts"
   },
   "repository": {
     "type": "git",

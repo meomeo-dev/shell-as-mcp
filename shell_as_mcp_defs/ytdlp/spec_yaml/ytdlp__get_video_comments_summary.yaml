@@ -9,6 +9,7 @@ tool:
      * @param maxComments Number of comments to return (1-50, default 10).
      * @param cookies Optional path to a Netscape-format cookies file.
      * @param proxy Optional proxy address (e.g. socks5://127.0.0.1:1080).
+    * @param maxRetries Optional retry count after failures, capped at 2 (default: 2).
      */
   input:
     properties:

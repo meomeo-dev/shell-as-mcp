@@ -1,0 +1,43 @@
+apiVersion: v1
+tool:
+  name: iwencai__healthz
+  description: |-
+    /**
+     * Check whether the iwencai CLI is available for read-only MCP queries.
+     * @remarks Reports CLI availability and whether IWENCAI_API_KEY is already configured, without triggering interactive setup.
+     */
+  input:
+    properties: {}
+    required: []
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  compatibility:
+    targets:
+      - os: macos
+        kernel: darwin
+        arch: arm64
+        support: tested
+        notes: Validated on Apple Silicon macOS with local iwencai CLI help commands.
+      - os: macos
+        kernel: darwin
+        arch: x86_64
+        support: declared
+        notes: Declared for Intel macOS; not validated in-repo.
+  env:
+    fromRuntime:
+      TOOL_IWENCAI_API_KEY: IWENCAI_API_KEY
+  timeoutMs: 10000
+  maxOutputBytes: 65536
+  script:
+    path: ./scripts/iwencai__healthz.sh
+    interpreter: bash

@@ -335,6 +335,19 @@ Priority order:
 
 ---
 
+### 3.9 iwencai
+
+> `iwencai__query2data_basic` and `iwencai__search_basic` are bounded, read-only wrappers around the local iwencai CLI. They require `IWENCAI_API_KEY` in the runtime environment and never write output files.
+
+| Tool | Description | Required Params | Optional Params |
+| --- | --- | --- | --- |
+| `iwencai__healthz` | Checks whether the local iwencai CLI is available and whether `IWENCAI_API_KEY` is already configured | — | — |
+| `iwencai__query2data_basic` | Runs a bounded natural-language `query2data` request for structured market data | `query` | `limit`, `page`, `format` |
+| `iwencai__search_basic` | Runs a bounded search across supported channels: `announcement`, `investor`, `news`, `report` | `query`, `channel` | `limit`, `format` |
+| `iwencai__skillbook` | Exports the built-in iwencai skillbook for local reference or LLM onboarding | — | `format` |
+
+---
+
 ## 4) Running
 
 ```bash
@@ -463,6 +476,12 @@ All of the following env vars can be placed directly in `mcpServers.<name>.env`.
 | `SHELL_AS_MCP_RUNPROMPT_TIMEOUT_SEC` | Timeout in seconds for the runprompt Python layer | `120` |
 | `SHELL_AS_MCP_RUNPROMPT_TOOL_ROOT` | Root directory for runprompt file tools | Rarely needs manual configuration |
 
+#### iwencai Query
+
+| Env Var | Purpose | Applicable Tools |
+| --- | --- | --- |
+| `IWENCAI_API_KEY` | API key passed through to the local iwencai CLI for bounded read-only queries | `iwencai__healthz`, `iwencai__query2data_basic`, `iwencai__search_basic` |
+
 #### Network Proxy
 
 | Env Var | Purpose |
@@ -487,7 +506,7 @@ Debug tip: set `RUNPROMPT_DEBUG_PROMPT=1` to print the full rendered prompt befo
 ## 6) Testing & Lint
 
 ```bash
-# Unit tests
+# All TypeScript tests (unit + contract + e2e)
 npm test
 
 # Run smoke tests (generic + current-target)

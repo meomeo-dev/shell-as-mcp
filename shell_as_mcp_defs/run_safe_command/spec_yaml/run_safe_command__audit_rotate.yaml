@@ -4,6 +4,7 @@ tool:
   description: |-
     /**
      * Rotate run_safe_command audit file immediately and enforce retention.
+     * @param max_files Optional retention count for rotated files. Range 1-100.
      */
   input:
     properties:

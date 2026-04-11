@@ -335,6 +335,19 @@ Advanced SubStation Alpha（ASS）字幕格式工具集。
 
 ---
 
+### 3.9 iwencai
+
+> `iwencai__query2data_basic` 与 `iwencai__search_basic` 是对本地 iwencai CLI 的有界（bounded）、只读（read-only）封装。它们要求运行时环境中存在 `IWENCAI_API_KEY`，且不会写出任何结果文件。
+
+| 工具 | 描述 | 必填参数 | 可选参数 |
+| --- | --- | --- | --- |
+| `iwencai__healthz` | 检查本地 iwencai CLI 是否可用，以及 `IWENCAI_API_KEY` 是否已配置 | — | — |
+| `iwencai__query2data_basic` | 以自然语言运行有界的 `query2data` 请求，返回结构化市场数据 | `query` | `limit`, `page`, `format` |
+| `iwencai__search_basic` | 在支持的频道 `announcement`、`investor`、`news`、`report` 上执行有界搜索 | `query`, `channel` | `limit`, `format` |
+| `iwencai__skillbook` | 导出内置 iwencai skillbook，供本地参考或 LLM onboarding 使用 | — | `format` |
+
+---
+
 ## 4) 运行方式
 
 ```bash
@@ -463,6 +476,12 @@ pip install "git+https://github.com/chr15m/runprompt.git"
 | `SHELL_AS_MCP_RUNPROMPT_TIMEOUT_SEC` | runprompt Python 层超时秒数 | `120` |
 | `SHELL_AS_MCP_RUNPROMPT_TOOL_ROOT` | runprompt 文件工具根目录 | 通常无需手动设置 |
 
+#### iwencai 查询类
+
+| 环境变量 | 作用 | 当前适用范围 |
+| --- | --- | --- |
+| `IWENCAI_API_KEY` | 透传给本地 iwencai CLI 的 API Key，用于有界只读查询 | `iwencai__healthz`、`iwencai__query2data_basic`、`iwencai__search_basic` |
+
 #### 网络代理类
 
 | 环境变量 | 作用 |
@@ -487,7 +506,7 @@ pip install "git+https://github.com/chr15m/runprompt.git"
 ## 6) 测试 & Lint
 
 ```bash
-# 单元测试
+# 全部 TypeScript 测试（unit + contract + e2e）
 npm test
 
 # 运行 smoke tests（generic + current-target）
